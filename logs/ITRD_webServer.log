@@ -1,0 +1,10 @@
+2020-11-27T15:48:44.279+0800	ERROR	ITRD_distributed/mainWebServer.go:81	interrupt
+2020-11-27T15:50:57.730+0800	ERROR	ITRD_distributed/mainWebServer.go:81	interrupt
+2020-11-27T15:53:34.113+0800	ERROR	ITRD_distributed/mainWebServer.go:81	interrupt
+2020-11-27T15:54:58.616+0800	ERROR	ITRD_distributed/mainWebServer.go:85	interrupt
+2020-11-27T15:54:58.617+0800	INFO	ITRD_distributed/master.go:278	Master Router was canceled
+2020-11-27T15:59:01.604+0800	ERROR	ITRD_distributed/mainWebServer.go:82	interrupt
+2020-11-27T16:07:06.853+0800	ERROR	ITRD_distributed/mainWebServer.go:82	interrupt
+2020-11-27T16:40:16.196+0800	ERROR	ITRD_distributed/master.go:311	assign job to 192.168.1.151:18199 error: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing dial tcp 192.168.1.151:8199: connectex: No connection could be made because the target machine actively refused it."
+2020-11-27T17:40:02.559+0800	ERROR	ITRD_distributed/mainWebServer.go:82	interrupt
+2020-11-27T17:40:02.559+0800	INFO	ITRD_distributed/master.go:278	Master Router was canceled

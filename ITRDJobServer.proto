@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package main;
+
+service JobManager {
+    rpc RunJob (JobInfo) returns (JobStatus) {}
+    rpc StopJob (JobInfo) returns (JobStatus) {}
+    rpc PullConfig (PullConfRequest) returns (PullConfResponse) {}
+    rpc PushFile (PushFileRequest) returns (PushFileResponse) {}
+    rpc AliveCheck (AliveCheckRequest) returns (AliveCheckResponse) {}
+}
+
+message JobInfo {
+    string accountId = 1;
+    string accountName = 2;
+}
+
+message JobStatus {
+    string accountId = 1;
+    string accountName = 2;
+    string position = 3;
+    string order = 4;
+    string trade = 5;
+    string errMsg = 6;
+}
+
+message PullConfRequest {
+    string remoteIp = 1;
+    string userName = 2;
+    string password = 3;
+    string sourceConfPath = 4;
+}
+
+message PullConfResponse {
+    int32 status = 1;
+}
+
+message PushFileRequest {
+    string remoteIp = 1;
+    string userName = 2;
+    string password = 3;
+    string dir = 4;
+}
+
+message PushFileResponse {
+    int32 status = 1;
+}
+
+message AliveCheckRequest {}
+
+message AliveCheckResponse {
+    int32 status = 1;
+}

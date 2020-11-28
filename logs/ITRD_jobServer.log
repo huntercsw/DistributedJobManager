@@ -1,0 +1,7 @@
+2020-11-27T16:09:05.783+0800	ERROR	ITRD_distributed/ITRDJobServer.go:65	dial to master error: grpc: no transport security set (use grpc.WithInsecure() explicitly or set credentials)
+2020-11-27T16:12:09.291+0800	DEBUG	ITRD_distributed/ITRDJobServer.go:187	Job server: Listening and serving tcp on 0.0.0.0:18199
+2020-11-27T16:37:21.699+0800	ERROR	ITRD_distributed/mainJobServer.go:56	recive signal to restart register
+2020-11-27T16:37:21.700+0800	DEBUG	ITRD_distributed/ITRDJobServer.go:276	register was canceled
+2020-11-27T16:40:16.091+0800	ERROR	ITRD_distributed/ITRDJobServer.go:371	CXXY rpc to master error: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing dial tcp 192.168.1.151:8199: connectex: No connection could be made because the target machine actively refused it."
+2020-11-27T17:41:45.110+0800	ERROR	ITRD_distributed/mainJobServer.go:63	Job Server exit: interrupt
+2020-11-27T17:42:02.191+0800	DEBUG	ITRD_distributed/ITRDJobServer.go:187	Job server: Listening and serving tcp on 0.0.0.0:18199

@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package main;
+
+service ITRDConsole {
+    rpc BrokerClient (BrokerClientRequest) returns (ConsoleResponse) {}
+}
+
+message BrokerClientRequest {
+    string accountId = 1;
+    string accountName = 2;
+    string position = 3;
+    string order = 4;
+    string trade = 5;
+    string errMsg = 6;
+}
+
+message ConsoleResponse {
+    string rsp = 1;
+}
