@@ -104,7 +104,7 @@ func BrokerClientProcessIsRunning(c *gin.Context) {
 }
 
 func DownLoad(c *gin.Context) {
-	log.Println("current connection number:", len(WsHub.clients))
+	log.Println("current WS connection number:", len(WsHub.clients))
 	req, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusBadRequest, "Data": "request body error: " + err.Error()})

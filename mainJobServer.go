@@ -46,7 +46,10 @@ package main
 //
 //	registerMonitorCtx, registerMonitorCancel := context.WithCancel(context.TODO())
 //	defer registerMonitorCancel()
+//
 //	go itrdJS.registerMonitor(registerMonitorCtx)
+//
+//	go JobMonitor()
 //
 //	c := make(chan os.Signal)
 //	signal.Notify(c, os.Interrupt, os.Kill)

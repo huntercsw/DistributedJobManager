@@ -10,6 +10,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"time"
 )
 
 var (
@@ -60,6 +61,8 @@ func syncConfig(conn *grpc.ClientConn) error {
 
 func MasterInit() (err error) {
 	if err = clientMapInit(); err != nil {
+		Logger.Error(fmt.Sprintf("clientMapInit error: %v", err))
+		log.Println(fmt.Sprintf("clientMapInit error: %v", err))
 		return err
 	}
 	if err = jobServerStatusUpdate(); err != nil {
@@ -88,10 +91,14 @@ func clientMapInit() error {
 		v := new(JobServerMeta)
 		_ = json.Unmarshal(i.Value, v)
 		if _k, err1 := newKey(string(i.Key)); err1 != nil {
+			Logger.Error(fmt.Sprintf("format key[%s] error: %v", string(i.Key), err1))
+			log.Println(fmt.Sprintf("format key[%s] error: %v", string(i.Key), err1))
 			continue
 		} else {
 			conn, err1 := dial2JobServer(_k)
 			if err1 != nil {
+				Logger.Error(fmt.Sprintf("connect to %s error: %v", _k, err1))
+				log.Println(fmt.Sprintf("connect to %s error: %v", _k, err1))
 				continue
 			}
 			ClientMap.Store(_k, *v)
@@ -176,7 +183,7 @@ func addNodeHandler(k, v []byte) {
 		}
 		ClientMap.Store(_k, *value)
 		ClientConnMap[_k] = conn
-		addNodeStatusHandler([]byte(JobServerStatusPreKey + _k), []byte(JobServerStatusFree))
+		addNodeStatusHandler([]byte(JobServerStatusPreKey+_k), []byte(JobServerStatusFree))
 	}
 
 	log.Println("node add", string(k))
@@ -223,26 +230,26 @@ func modifyNodeStatusHandler(k, v []byte) {
 	value := string(v)
 	key, _ := newKey(string(k))
 	if _, exist := ClientMap.Load(key); exist {
-		if oldStatus, ok := ClientStatusMap[key]; ok {
-			if oldStatus != JobServerStatusFree && value == JobServerStatusFree {
-				MasterRouterChannel <- key
-			}
+		ClientStatusMap[key] = value
+		if value == JobServerStatusFree {
+			MasterRouterChannel <- key
 		}
+		fmt.Println("length: MasterRouterChannel: ", len(MasterRouterChannel))
 	}
 
-	log.Println("status modify", string(k))
+	log.Println("status modify", string(k), string(v))
 	printClientStatusMap()
 }
 
 func printClientStatusMap() {
 	for k, v := range ClientStatusMap {
-		fmt.Println(k, v)
+		fmt.Println("clientStatusMap: ", k, v)
 	}
 }
 
 func printClientMap() {
 	ClientMap.Range(func(k, v interface{}) bool {
-		fmt.Println(k, v)
+		fmt.Println("ClientMap: ", k, v)
 		return true
 	})
 }
@@ -271,8 +278,8 @@ func RunMasterRouter(ctx context.Context) {
 			}
 			if findFreeClient {
 				fmt.Println(accountName, client)
-				err :=assignJob(client, accountName)
-				fmt.Println("result from -->>",client, accountName, err)
+				err := assignJob(client, accountName)
+				fmt.Println("result from -->>", client, accountName, err)
 			}
 		case <-ctx.Done():
 			Logger.Info("Master Router was canceled")
@@ -304,12 +311,33 @@ func assignJob(node, accountName string) error {
 	}
 	c := NewJobManagerClient(conn)
 	rsp, err := c.RunJob(context.TODO(), &JobInfo{
-		AccountId:            "",
-		AccountName:          accountName,
+		AccountId:   "",
+		AccountName: accountName,
 	})
 	if err != nil {
-		Logger.Error(fmt.Sprintf("assign job to %s error: %v", node, err))
-		log.Println(fmt.Sprintf("assign job to %s error: %v", node, err))
+		Logger.Error(fmt.Sprintf("run job %s on %s error: %v", accountName, node, err))
+		log.Println(fmt.Sprintf("run job %s on %s error: %v", accountName, node, err))
+		JobChan <- accountName
+		MasterRouterChannel <- node
+		// if error occur, it will be network error ro rpc error
+		time.Sleep(time.Second * 5)
+	} else {
+		switch rsp.ErrMsg {
+		case ErrorMessageDoJobOK:
+			break
+		case ErrorMessageNodeIsBusy:
+			JobChan <- accountName
+			MasterRouterChannel <- node
+		case ErrorMessageJobRunningOnOtherNode:
+			MasterRouterChannel <- node
+			// TODO: broadcast
+
+		case ErrorMessageUpdateNodeStatusError:
+		// TODO: if rsp.ErrMsg == ErrorMessageUpdateNodeStatusError, restart(register cancel and register again) node
+		default:
+			Logger.Error(fmt.Sprintf("assign job to %s error: %v", node, err))
+			log.Println(fmt.Sprintf("assign job to %s error: %v", node, err.Error()))
+		}
 	}
 	fmt.Println(fmt.Sprintf("rsp from %s: %v", node, rsp))
 	return err

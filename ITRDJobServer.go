@@ -11,9 +11,9 @@ import (
 	"github.com/shirou/gopsutil/process"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"os"
 	"os/exec"
 	"strconv"
-
 	//"google.golang.org/grpc"
 	"io/ioutil"
 	"log"
@@ -25,6 +25,7 @@ const (
 	JobServerPort                     = "18199"
 	JobServerMetaDataPreKey           = "/ITRD/JobServer/MetaData/"
 	JobServerStatusPreKey             = "/ITRD/JobServer/Status/"
+	JobIsRunningOnPreKey              = "/ITRD/JobIsRunningOn/" // distribute lock, /ITRD/JobIsRunningOn/XXXX: XXX.XXX.XXX.XXX
 	JobServerStatusRunning            = "0"
 	JobServerStatusFree               = "1"
 	JobServerStatusPullConfigError    = "500"
@@ -33,20 +34,26 @@ const (
 	PullConfigStatusFailed            = 1
 	PushFileStatusOK                  = 0
 	PushFileStatusFailed              = 1
+	ErrorMessageDoJobOK               = "200"
 	ErrorMessageDoJobError            = "400"
 	ErrorMessageUpdateNodeStatusError = "401"
 	ErrorMessageStopJobError          = "403"
 	ErrorMessageStopJobOK             = "404"
+	ErrorMessageNodeIsBusy            = "405"
+	ErrorMessageJobRunningOnOtherNode = "406"
 	UpdateStatusErrorThreshold        = 3
 )
 
 var (
-	Cli3                   *clientv3.Client
-	MyJobServerStatusKey   string
-	UpdateConfig           = false
-	RestartRegisterChannel = make(chan struct{})
-	Reporter               *grpc.ClientConn
-	UpdateStatusCount      = 0
+	Cli3                        *clientv3.Client
+	MyJobServerStatusKey        string
+	UpdateConfig                = false
+	RestartRegisterChannel      = make(chan struct{})
+	Reporter                    *grpc.ClientConn
+	UpdateStatusCount           = 0
+	NodeBusyBrokerClientRunning = false
+	NodeIpAddr                  string
+	jobDoneChannel              = make(chan JobResult)
 )
 
 type ITRDJobServer struct{}
@@ -58,9 +65,22 @@ type JobServerMeta struct {
 
 type JobService struct{}
 
+type JobResult struct {
+	AccountName string
+	Error       error
+}
+
 func ReporterInit() error {
-	var err error
-	Reporter, err = grpc.Dial(Conf.MasterInfo.Ip + ":" + Conf.MasterInfo.Port, grpc.WithInsecure())
+	ip, err := externalIP()
+	if err != nil {
+		Logger.Error(fmt.Sprintf("get host ip error: %v", err))
+		log.Println(fmt.Sprintf("get host ip error: %v", err))
+		return err
+	} else {
+		NodeIpAddr = ip.String()
+	}
+
+	Reporter, err = grpc.Dial(Conf.MasterInfo.Ip+":"+Conf.MasterInfo.Port, grpc.WithInsecure())
 	if err != nil {
 		Logger.Error(fmt.Sprintf("dial to master error: %v", err))
 		log.Println(fmt.Sprintf("dial to master error: %v", err))
@@ -69,6 +89,14 @@ func ReporterInit() error {
 }
 
 func (js *JobService) RunJob(ctx context.Context, req *JobInfo) (*JobStatus, error) {
+	if NodeBusyBrokerClientRunning {
+		return &JobStatus{AccountName: req.AccountName, ErrMsg: ErrorMessageNodeIsBusy}, nil
+	}
+
+	defer func() {
+		NodeBusyBrokerClientRunning = false
+	}()
+
 	if UpdateConfig {
 		for i := 0; i < 20; i++ {
 			if !UpdateConfig {
@@ -82,29 +110,36 @@ func (js *JobService) RunJob(ctx context.Context, req *JobInfo) (*JobStatus, err
 			if err := UpdateJobServerStatus(MyJobServerStatusKey, JobServerStatusPullConfigError); err != nil {
 				errMsg := fmt.Sprintf("run job[%s], modify server status to SYNC_CONF_ERROR error: %v", req.AccountName, err)
 				Logger.Error(errMsg)
+				log.Println(errMsg)
 				RestartRegisterChannel <- struct{}{}
-				return &JobStatus{AccountName: req.AccountName, ErrMsg: ErrorMessageUpdateNodeStatusError}, errors.New(errMsg)
+				return &JobStatus{AccountName: req.AccountName, ErrMsg: ErrorMessageUpdateNodeStatusError}, nil
 			}
+		}
+	}
+
+	running, err := jobIsRunning(req.AccountName)
+	if err != nil {
+		if running {
+			return &JobStatus{AccountName: req.AccountName, ErrMsg: ErrorMessageJobRunningOnOtherNode}, nil
 		}
 	}
 
 	if err := UpdateJobServerStatus(MyJobServerStatusKey, JobServerStatusRunning); err != nil {
 		errMsg := fmt.Sprintf("run job[%s], modify server status to RUNNING error: %v", req.AccountName, err)
 		Logger.Error(errMsg)
-		return &JobStatus{AccountName: req.AccountName, ErrMsg: ErrorMessageUpdateNodeStatusError}, errors.New(errMsg)
+		log.Println(errMsg)
+		return &JobStatus{AccountName: req.AccountName, ErrMsg: ErrorMessageUpdateNodeStatusError}, nil
 	}
 
-	if err := do(req.AccountName); err != nil {
-		return &JobStatus{AccountName: req.AccountName, ErrMsg: ErrorMessageDoJobError}, err
-	}
+	NodeBusyBrokerClientRunning = true
+	go func() {
+		if err := do(req.AccountName); err != nil {
+			Logger.Error(fmt.Sprintf("run job[%s] error: %v", req.AccountName, err))
+			log.Println(fmt.Sprintf("run job[%s] error: %v", req.AccountName, err))
+		}
+	}()
 
-	if err := UpdateJobServerStatus(MyJobServerStatusKey, JobServerStatusFree); err != nil {
-		errMsg := fmt.Sprintf("run job[%s], modify server status to FREE error: %v", req.AccountName, err)
-		Logger.Error(errMsg)
-		return &JobStatus{AccountName: req.AccountName, ErrMsg: ErrorMessageUpdateNodeStatusError}, errors.New(errMsg)
-	}
-
-	return &JobStatus{AccountName: req.AccountName, ErrMsg: ""}, nil
+	return &JobStatus{AccountName: req.AccountName, ErrMsg: ErrorMessageDoJobOK}, nil
 }
 
 func (js *JobService) StopJob(ctx context.Context, req *JobInfo) (*JobStatus, error) {
@@ -117,9 +152,9 @@ func (js *JobService) StopJob(ctx context.Context, req *JobInfo) (*JobStatus, er
 		}, err
 	} else {
 		return &JobStatus{
-			AccountId:            req.AccountId,
-			AccountName:          req.AccountName,
-			ErrMsg:               ErrorMessageStopJobOK,
+			AccountId:   req.AccountId,
+			AccountName: req.AccountName,
+			ErrMsg:      ErrorMessageStopJobOK,
 		}, err
 	}
 }
@@ -300,11 +335,7 @@ func (js *ITRDJobServer) registerMonitor(ctx context.Context) {
 }
 
 func newJobServerMeta() (*JobServerMeta, error) {
-	ip, err := externalIP()
-	if err != nil {
-		return nil, err
-	}
-	return &JobServerMeta{Ip: ip.String(), Port: JobServerPort}, nil
+	return &JobServerMeta{Ip: NodeIpAddr, Port: JobServerPort}, nil
 }
 
 func externalIP() (net.IP, error) {
@@ -353,25 +384,58 @@ func getIpFromAddr(addr net.Addr) net.IP {
 }
 
 func do(accountName string) error {
-	go func() {
-		log.Println(fmt.Sprintf("do ---------- %s", accountName))
-		time.Sleep(time.Second * 60)
-	}()
+	ctx, cancel := context.WithCancel(context.TODO())
+	jobResChannel := make(chan string)
+	defer close(jobResChannel)
 
-	c := NewITRDConsoleClient(Reporter)
-	_, err := c.BrokerClient(context.TODO(), &BrokerClientRequest{
-		AccountId:   "",
-		AccountName: accountName,
-		Position:    "test",
-		Order:       "test",
-		Trade:       "test",
-		ErrMsg:      "err-test",
-	})
+	err := jobLock(accountName)
 	if err != nil {
-		Logger.Error(fmt.Sprintf("%s rpc to master error: %v", accountName, err))
-		log.Println(fmt.Sprintf("%s rpc to master error: %v", accountName, err))
+		// TODO: lock failed
+		return err
 	}
-	return err
+
+	go func(ctx context.Context) {
+		log.Println(fmt.Sprintf("do ---------- %s", accountName))
+		time.Sleep(time.Second * 30)
+		jobResChannel <- fmt.Sprintf("job[%s] done", accountName)
+		select {
+		case <-ctx.Done():
+			return
+		}
+	}(ctx)
+
+	select {
+	case res := <-jobResChannel:
+		if res == "" {
+			jobDoneChannel <- JobResult{AccountName: accountName, Error: nil}
+		} else {
+			jobDoneChannel <- JobResult{AccountName: accountName, Error: errors.New(res)}
+		}
+
+	case <-time.After(OneAccountTimeOut):
+		fmt.Println(fmt.Sprintf("%s timeout", accountName))
+		cancel()
+	}
+
+	if err = jobUnlock(accountName); err != nil {
+		// TODO: unlock failed
+		return err
+	}
+
+	//c := NewITRDConsoleClient(Reporter)
+	//_, err = c.BrokerClient(context.TODO(), &BrokerClientRequest{
+	//	AccountId:   "",
+	//	AccountName: accountName,
+	//	Position:    "test",
+	//	Order:       "test",
+	//	Trade:       "test",
+	//	ErrMsg:      "err-test",
+	//})
+	//if err != nil {
+	//	Logger.Error(fmt.Sprintf("%s rpc to master error: %v", accountName, err))
+	//	log.Println(fmt.Sprintf("%s rpc to master error: %v", accountName, err))
+	//}
+	return nil
 }
 
 func closeAllBrokerClient() {
@@ -428,5 +492,71 @@ func getPidByName(processName string) (int32, error) {
 		return processPid, errors.New(fmt.Sprintf("%s dose not exist", processName))
 	} else {
 		return processPid, nil
+	}
+}
+
+func jobLock(accountName string) error {
+	_, err := Cli3.Put(context.TODO(), JobIsRunningOnPreKey+accountName, NodeIpAddr)
+	if err != nil {
+		Logger.Error(fmt.Sprintf("add job[%s] lock error: %v", accountName, err))
+		log.Println(fmt.Sprintf("add job[%s] lock error: %v", accountName, err))
+	}
+	return err
+}
+
+func jobUnlock(accountName string) error {
+	_, err := Cli3.Delete(context.TODO(), JobIsRunningOnPreKey+accountName)
+	if err != nil {
+		Logger.Error(fmt.Sprintf("remove job[%s] lock error: %v", accountName, err))
+		log.Println(fmt.Sprintf("remove job[%s] lock error: %v", accountName, err))
+	}
+	return err
+}
+
+func jobIsRunning(accountName string) (bool, error) {
+	rsp, err := Cli3.Get(context.TODO(), JobIsRunningOnPreKey+accountName)
+	if err != nil {
+		Logger.Error(fmt.Sprintf("get job[%s] lock error: %v", accountName, err))
+		log.Println(fmt.Sprintf("get job[%s] lock error: %v", accountName, err))
+		return false, err
+	}
+	if rsp.Count == 0 {
+		return false, nil
+	} else {
+		msg := ""
+		for _, kv := range rsp.Kvs {
+			msg = string(kv.Value)
+		}
+		return true, errors.New(fmt.Sprintf("%s is running on %s", accountName, msg))
+	}
+}
+
+func JobMonitor() {
+	defer func() {
+		if err := recover(); err != nil {
+			Logger.Error(fmt.Sprintf("JobMonitor Panic: %v", err))
+			log.Println(fmt.Sprintf("JobMonitor Panic: %v", err))
+			os.Exit(1)
+		}
+	}()
+
+	for {
+		select {
+		case res := <-jobDoneChannel:
+			if res.Error != nil {
+				// TODO
+				fmt.Println(res.AccountName, res.Error.Error())
+			} else {
+				// TODO
+				fmt.Println(res.AccountName, "succeed")
+			}
+
+			if err := UpdateJobServerStatus(MyJobServerStatusKey, JobServerStatusFree); err != nil {
+				errMsg := fmt.Sprintf("run job[%s], modify node status to FREE error: %v", res.AccountName, err)
+				Logger.Error(errMsg)
+				log.Println(errMsg)
+			}
+		}
+
 	}
 }

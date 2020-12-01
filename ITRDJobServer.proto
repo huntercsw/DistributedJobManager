@@ -21,7 +21,8 @@ message JobStatus {
     string position = 3;
     string order = 4;
     string trade = 5;
-    string errMsg = 6;
+    int32 errCode = 6;
+    string errMsg = 7;
 }
 
 message PullConfRequest {
