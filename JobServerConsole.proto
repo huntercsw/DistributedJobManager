@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package main;
+
+service ITRDNodeConsole {
+    rpc Py2JobServerConsole (PyRequest) returns (JobServerConsoleResponse) {}
+}
+
+message PyRequest {
+    string accountId = 1;
+    string accountName = 2;
+    string position = 3;
+    string order = 4;
+    string trade = 5;
+    string errMsg = 6;
+}
+
+message JobServerConsoleResponse {
+    string rsp = 1;
+}

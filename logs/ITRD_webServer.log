@@ -1,0 +1,11 @@
+2020-12-01T16:55:08.839+0800	DEBUG	ITRD_distributed/master.go:332	CXXY is running on CXXY is running on 192.168.1.151
+2020-12-01T16:55:16.135+0800	DEBUG	ITRD_distributed/master.go:332	CXXY is running on CXXY is running on 192.168.1.151
+2020-12-01T16:55:38.099+0800	DEBUG	ITRD_distributed/master.go:332	CXXY is running on CXXY is running on 192.168.1.83
+2020-12-01T20:31:47.326+0800	ERROR	ITRD_distributed/mainWebServer.go:82	interrupt
+2020-12-01T20:31:47.326+0800	INFO	ITRD_distributed/master.go:285	Master Router was canceled
+2020-12-01T20:37:21.188+0800	ERROR	ITRD_distributed/mainWebServer.go:88	interrupt
+2020-12-01T20:37:21.188+0800	INFO	ITRD_distributed/master.go:285	Master Router was canceled
+2020-12-01T20:39:26.937+0800	ERROR	ITRD_distributed/mainWebServer.go:88	interrupt
+2020-12-01T20:39:26.939+0800	INFO	ITRD_distributed/master.go:285	Master Router was canceled
+2020-12-01T20:40:28.526+0800	ERROR	ITRD_distributed/mainWebServer.go:88	interrupt
+2020-12-01T20:40:28.527+0800	INFO	ITRD_distributed/master.go:285	Master Router was canceled

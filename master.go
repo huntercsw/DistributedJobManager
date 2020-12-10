@@ -7,18 +7,26 @@ import (
 	"fmt"
 	"github.com/coreos/etcd/clientv3"
 	"google.golang.org/grpc"
+	"io/ioutil"
 	"log"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 )
 
 var (
-	ClientMap           sync.Map
-	ClientStatusMap     map[string]string
-	ClientConnMap       = make(map[string]*grpc.ClientConn)
-	MasterRouterChannel = make(chan string, 255)
+	ClientMap             sync.Map		// key: 192.168.1.191:18199
+	ClientStatusMap       map[string]string
+	ClientConnMap         = make(map[string]*grpc.ClientConn)
+	MasterRouterChannel   = make(chan string, 255)
+	PyFileMap             = new(FileMap)
+	PngFileMap            = new(FileMap)
+	VMBlackListAccountMap map[string]struct{}
+	PhysicalMachineMap    = make(map[string]struct{})
 )
+
+type FileMap map[string]string // [fileName]: fileSha1
 
 func newKey(s string) (string, error) {
 	_s := strings.Split(s, "/")
@@ -77,7 +85,9 @@ func MasterInit() (err error) {
 		}
 		return true
 	})
-	return
+	fmt.Println(len(MasterRouterChannel))
+
+	return UnlockAllJob()
 }
 
 func clientMapInit() error {
@@ -186,23 +196,28 @@ func addNodeHandler(k, v []byte) {
 		addNodeStatusHandler([]byte(JobServerStatusPreKey+_k), []byte(JobServerStatusFree))
 	}
 
-	log.Println("node add", string(k))
-	printClientMap()
+	//log.Println("node add", string(k))
+	//printClientMap()
 }
 
 func removeNodeHandler(k string) {
 	ClientMap.Delete(k)
+	if _, exist := PhysicalMachineMap[k]; exist {
+		delete(PhysicalMachineMap, k)
+	}
 	if conn, exist := ClientConnMap[k]; exist {
 		delete(ClientConnMap, k)
-		conn.Close()
+		_ = conn.Close()
 	}
 
 	if _, err := Cli3.Delete(context.TODO(), JobServerStatusPreKey+strings.Split(k, "/")[4]); err != nil {
 		Logger.Error(fmt.Sprintf("delete status %s error: %v", JobServerStatusPreKey+strings.Split(k, "/")[4], err))
 	}
 
-	log.Println("node delete", k)
-	printClientMap()
+	JobUnlockWhenNodeDead(strings.Split(k, "/")[4])
+
+	//log.Println("node delete", k)
+	//printClientMap()
 }
 
 func addNodeStatusHandler(k, v []byte) {
@@ -215,15 +230,15 @@ func addNodeStatusHandler(k, v []byte) {
 		}
 	}
 
-	log.Println("status add", string(k))
-	printClientStatusMap()
+	//log.Println("status add", string(k))
+	//printClientStatusMap()
 }
 
 func removeNodeStatusHandler(k []byte) {
 	_k, _ := newKey(string(k))
 	delete(ClientStatusMap, _k)
-	log.Println("status delete", string(k))
-	printClientStatusMap()
+	//log.Println("status delete", string(k))
+	//printClientStatusMap()
 }
 
 func modifyNodeStatusHandler(k, v []byte) {
@@ -234,11 +249,10 @@ func modifyNodeStatusHandler(k, v []byte) {
 		if value == JobServerStatusFree {
 			MasterRouterChannel <- key
 		}
-		fmt.Println("length: MasterRouterChannel: ", len(MasterRouterChannel))
 	}
 
-	log.Println("status modify", string(k), string(v))
-	printClientStatusMap()
+	//log.Println("status modify", string(k), string(v))
+	//printClientStatusMap()
 }
 
 func printClientStatusMap() {
@@ -263,27 +277,66 @@ func RunMasterRouter(ctx context.Context) {
 	}()
 
 	for {
+		var accountName string
 		select {
-		case accountName := <-JobChan:
-			fmt.Println("JobChannel -> ", accountName)
-			findFreeClient := false
-			var client string
-			for {
-				client = <-MasterRouterChannel
-				if isInClientMap(client) && isInClientStatusMap(client) {
-					findFreeClient = true
-					break
-				}
-				// if client not in ClientMap or not in ClientStatusMap, continue to get another client
-			}
-			if findFreeClient {
-				fmt.Println(accountName, client)
-				err := assignJob(client, accountName)
-				fmt.Println("result from -->>", client, accountName, err)
-			}
+		case vmDisableJob := <- VMDisableJobChannel:
+			accountName = vmDisableJob
+			Logger.Debug(fmt.Sprintf("get job from VMDisableJobChannel -> %s", accountName))
+		case job := <-JobChan:
+			accountName = job
+			Logger.Debug(fmt.Sprintf("get job from JobChannel -> %s", accountName))
 		case <-ctx.Done():
 			Logger.Info("Master Router was canceled")
 			return
+		}
+
+		findFreeClient := false
+		var client string
+		for {
+			client = <-MasterRouterChannel
+			if isInClientMap(client) && isInClientStatusMap(client) {
+				findFreeClient = true
+				break
+			}
+			// if client not in ClientMap or not in ClientStatusMap, continue to get another client
+		}
+		if findFreeClient {
+			Logger.Debug("length: MasterRouterChannel: ", len(MasterRouterChannel))
+			var err error
+			if _, exist := PhysicalMachineMap[client]; exist {
+				if _, exist := VMBlackListAccountMap[accountName]; exist {
+					err = assignJob(client, accountName)
+				} else {
+					if len(VMDisableJobChannel) > 0 {
+						_job := <- VMDisableJobChannel
+						JobChan <- accountName
+						Logger.Debug(fmt.Sprintf("%s is physical machine, %s is not VmDisable job, get job %s from VmDisableChannel", client, accountName, _job))
+						err = assignJob(client, _job)
+					} else {
+						err = assignJob(client, accountName)
+					}
+				}
+			} else {
+				if _, exist := VMBlackListAccountMap[accountName]; exist {
+					VMDisableJobChannel <- accountName
+					if len(JobChan) > 0 {
+						_job := <- JobChan
+						Logger.Debug(fmt.Sprintf("%s is virtual machine, %s is VmDisable job, get job %s from JobChannel", client, accountName, _job))
+						err = assignJob(client, _job)
+					} else {
+						MasterRouterChannel <- client
+						continue
+					}
+				} else {
+					err = assignJob(client, accountName)
+				}
+			}
+			//err := assignJob(client, accountName)
+			if err != nil {
+				Logger.Error(fmt.Sprintf("assign job %s to %s error: %v", accountName, client, err))
+			} else {
+				Logger.Debug(fmt.Sprintf("get node[%s] from MasterRouterChannel to do job[%s]", client, accountName))
+			}
 		}
 	}
 }
@@ -317,28 +370,172 @@ func assignJob(node, accountName string) error {
 	if err != nil {
 		Logger.Error(fmt.Sprintf("run job %s on %s error: %v", accountName, node, err))
 		log.Println(fmt.Sprintf("run job %s on %s error: %v", accountName, node, err))
-		JobChan <- accountName
+		RouteJob2Channel(accountName)
 		MasterRouterChannel <- node
 		// if error occur, it will be network error ro rpc error
 		time.Sleep(time.Second * 5)
 	} else {
-		switch rsp.ErrMsg {
-		case ErrorMessageDoJobOK:
+		switch rsp.ErrCode {
+		case ErrorCodeDoJobOK:
 			break
-		case ErrorMessageNodeIsBusy:
-			JobChan <- accountName
+		case ErrorCodeNodeIsBusy:
+			Logger.Debug(fmt.Sprintf("send job %s to %s , node is busy", accountName, node))
+			RouteJob2Channel(accountName)
+		case ErrorCodeNodeIsVirtualMachine:
+			Logger.Debug(fmt.Sprintf("%s is virtual machine, can not do job %s", node, accountName))
+			RouteJob2Channel(accountName)
 			MasterRouterChannel <- node
-		case ErrorMessageJobRunningOnOtherNode:
+			// TODO: job will sand to this node always
+		case ErrorCodeJobRunningOnOtherNode:
+			Logger.Debug(fmt.Sprintf("run job on %s failed: %s", node, rsp.ErrMsg))
 			MasterRouterChannel <- node
-			// TODO: broadcast
-
-		case ErrorMessageUpdateNodeStatusError:
-		// TODO: if rsp.ErrMsg == ErrorMessageUpdateNodeStatusError, restart(register cancel and register again) node
+			rspMsg, _ := json.Marshal(&JobResultRequest{
+				AccountName: accountName,
+				Position:    "err",
+				Order:       "err",
+				Trade:       "err",
+				ErrMsg:      rsp.ErrMsg,
+			})
+			WsHub.broadcast <- rspMsg
+		case ErrorCodeUpdateConfigError:
+			Logger.Error(fmt.Sprintf("%s sync config from master error", node))
+			if _, err := Cli3.Delete(context.TODO(), JobServerMetaDataPreKey+node); err != nil {
+				Logger.Error(fmt.Sprintf("delete node %s error: %v", node, err))
+			}
+			RouteJob2Channel(accountName)
+		case ErrorCodeNodeStatusFree2RunningError:
+			Logger.Error(fmt.Sprintf("node %s update node status to running error", node))
+			RouteJob2Channel(accountName)
+			if _, exist := ClientStatusMap[node]; exist {
+				ClientStatusMap[node] = JobServerStatusFree
+			}
+			MasterRouterChannel <- node
 		default:
-			Logger.Error(fmt.Sprintf("assign job to %s error: %v", node, err))
-			log.Println(fmt.Sprintf("assign job to %s error: %v", node, err.Error()))
+			Logger.Error(fmt.Sprintf("assign job[%s] to %s error: %s", rsp.AccountName, node, rsp.ErrMsg))
+			log.Println(fmt.Sprintf("assign job[%s] to %s error: %s", rsp.AccountName, node, rsp.ErrMsg))
 		}
 	}
 	fmt.Println(fmt.Sprintf("rsp from %s: %v", node, rsp))
 	return err
+}
+
+func JobUnlockWhenNodeDead(node string) {
+	nodeIp := strings.Split(node, ":")[0]
+	rsp, err := Cli3.Get(context.TODO(), JobIsRunningOnPreKey, clientv3.WithPrefix())
+	if err != nil {
+		Logger.Error(fmt.Sprintf("unlock job for node %s error: %v", nodeIp, err))
+		return
+	}
+	for _, kv := range rsp.Kvs {
+		if string(kv.Value) == nodeIp {
+			if _, err := Cli3.Delete(context.TODO(), string(kv.Key)); err != nil {
+				Logger.Error(fmt.Sprintf("unlock job for node %s, delete key %s error: %v", nodeIp, string(kv.Key), err))
+			}
+		}
+	}
+}
+
+func UnlockAllJob() error {
+	_, err := Cli3.Delete(context.TODO(), JobIsRunningOnPreKey, clientv3.WithPrefix())
+	if err != nil {
+		Logger.Error(fmt.Sprintf("unlock all job error: %v", err))
+	}
+	return err
+}
+
+func StopAllJobs() error {
+	hasErr := ""
+	for node, conn := range ClientConnMap {
+		c := NewJobManagerClient(conn)
+		if stopRes, err := c.StopJob(context.TODO(), &JobInfo{}); err != nil {
+			Logger.Error(fmt.Sprintf("send stop signal to %s error: %v", node, err))
+			if _, err = Cli3.Delete(context.TODO(), JobServerMetaDataPreKey+node); err != nil {
+				Logger.Error(fmt.Sprintf("delete server [%s] from etcd error: %v", node, err))
+				hasErr += fmt.Sprintf("stop job which assigned to %s error", node)
+			}
+		} else {
+			if stopRes.ErrMsg != "" {
+				Logger.Error(fmt.Sprintf("%s stop job error: %s", node, stopRes.ErrMsg))
+				if _, err = Cli3.Delete(context.TODO(), JobServerMetaDataPreKey+node); err != nil {
+					Logger.Error(fmt.Sprintf("delete server [%s] from etcd error: %v", node, err))
+					hasErr += fmt.Sprintf("stop job which assigned to %s error", node)
+				}
+			}
+		}
+	}
+
+	if hasErr != "" {
+		return errors.New(hasErr)
+	} else {
+		return nil
+	}
+}
+
+func (fm *FileMap) PyFileMapInit() error {
+	*fm = make(map[string]string)
+	pyFiles, err := ioutil.ReadDir(MasterBaseDir + "pys")
+	if err != nil {
+		Logger.Error(fmt.Sprintf("open dir[%s] error: %v", MasterBaseDir+"pys", err))
+		return err
+	}
+
+	for _, file := range pyFiles {
+		if pyFileSha1, err1 := fileSha1(filepath.Join(MasterBaseDir, "pys", file.Name())); err1 != nil {
+			Logger.Error(fmt.Sprintf("Sha1 of file %s error: %v", file.Name(), err1))
+			return err1
+		} else {
+			(*fm)[file.Name()] = pyFileSha1
+		}
+	}
+
+	var pyFileList = make([]string, 0)
+	for k, _ := range *fm {
+		pyFileList = append(pyFileList, k)
+	}
+	pyFIleListJson, _ := json.Marshal(&pyFileList)
+	if _, err = Cli3.Put(context.TODO(), PyFileNameListKey, string(pyFIleListJson)); err != nil {
+		Logger.Error(fmt.Sprintf("put py file list to etcd error: %v", err))
+		return err
+	}
+
+	return nil
+}
+
+func (fm *FileMap) PngFileMapInit() error {
+	*fm = make(map[string]string)
+	pyFiles, err := ioutil.ReadDir(MasterBaseDir + "pngs")
+	if err != nil {
+		Logger.Error(fmt.Sprintf("open dir[%s] error: %v", MasterBaseDir+"pngs", err))
+		return err
+	}
+
+	var pngFileSha1 string
+	for _, file := range pyFiles {
+		if pngFileSha1, err = fileSha1(filepath.Join(MasterBaseDir, "pngs", file.Name())); err != nil {
+			Logger.Error(fmt.Sprintf("Sha1 of file %s error: %v", file.Name(), err))
+			return err
+		} else {
+			(*fm)[file.Name()] = pngFileSha1
+		}
+	}
+
+	var pngFileList = make([]string, 0)
+	for k, _ := range *fm {
+		pngFileList = append(pngFileList, k)
+	}
+	pngFIleListJson, _ := json.Marshal(&pngFileList)
+	if _, err = Cli3.Put(context.TODO(), PngFileNameListKey, string(pngFIleListJson)); err != nil {
+		Logger.Error(fmt.Sprintf("put png file list to etcd error: %v", err))
+		return err
+	}
+
+	return nil
+}
+
+func RouteJob2Channel(accountName string) {
+	if _, exist := VMBlackListAccountMap[accountName]; exist {
+		VMDisableJobChannel <- accountName
+	} else {
+		JobChan <- accountName
+	}
 }

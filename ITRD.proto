@@ -3,10 +3,12 @@ syntax = "proto3";
 package main;
 
 service ITRDConsole {
-    rpc BrokerClient (BrokerClientRequest) returns (ConsoleResponse) {}
+    rpc ReportJobResult (JobResultRequest) returns (JobResultResponse) {}
+    rpc Report2Master (ReportRequest) returns (ReportResponse) {}
+    rpc Check (CheckRequest) returns (CheckResponse) {}
 }
 
-message BrokerClientRequest {
+message JobResultRequest {
     string accountId = 1;
     string accountName = 2;
     string position = 3;
@@ -15,6 +17,22 @@ message BrokerClientRequest {
     string errMsg = 6;
 }
 
-message ConsoleResponse {
+message JobResultResponse {
     string rsp = 1;
 }
+
+message ReportRequest {
+    string accountId = 1;
+    string accountName = 2;
+    string host = 3;
+    int32 code = 4;
+    string msg = 5;
+}
+
+message ReportResponse {
+    string rsp = 1;
+}
+
+message CheckRequest {}
+
+message CheckResponse {}

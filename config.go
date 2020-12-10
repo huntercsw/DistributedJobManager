@@ -1,11 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/xml"
+	"errors"
 	"fmt"
+	"github.com/shirou/gopsutil/disk"
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -22,7 +27,8 @@ type ITRDConf struct {
 	Logger        LogConf  `xml:"log"`
 	PyProcessPath string   `xml:"pyProcessPath"`
 	configSha1    string
-	MasterInfo    MasterInfo `xml:"master"`
+	MasterInfo    MasterInfo              `xml:"master"`
+	VMBlackList   VirtualMachineBlackList `xml:"virtualMachineBlackList"`
 }
 
 type Broker struct {
@@ -47,6 +53,10 @@ type MasterInfo struct {
 	Port string `xml:"port"`
 }
 
+type VirtualMachineBlackList struct {
+	Brokers []string `xml:"broker"`
+}
+
 func (conf *ITRDConf) newConf() (err error) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -67,11 +77,25 @@ func (conf *ITRDConf) newConf() (err error) {
 		return
 	}
 
-	//conf.OutputDir = path.Join(conf.OutputDir, )
+	device := baseDevice()
+
+	VMBlackListAccountMap = make(map[string]struct{})
 
 	for i := 0; i < len(conf.Brokers); i++ {
 		conf.Brokers[i].ProcessName = filepath.Base(conf.Brokers[i].ExePath)
+		configMatchingDevice(&device, &(conf.Brokers[i].ExePath))
+
+		for _, b := range conf.VMBlackList.Brokers {
+			if conf.Brokers[i].Name == b {
+				VMBlackListAccountMap[b] = struct{}{}
+				break
+			}
+		}
 	}
+
+	configMatchingDevice(&device, &(conf.OutputDir))
+	configMatchingDevice(&device, &(conf.PyProcessPath))
+	configMatchingDevice(&device, &(conf.Logger.Path))
 
 	conf.configSha1, err = fileSha1(CONF_NAME)
 	if err != nil {
@@ -93,6 +117,11 @@ func Reconfiguration() error {
 	ConfMutex.Lock()
 	err = ConfigInit()
 	ConfMutex.Unlock()
+
+	if err = updateConfigVersion(); err != nil {
+		return err
+	}
+
 	return err
 }
 
@@ -101,5 +130,70 @@ func ConfigInit() (err error) {
 	if err = Conf.newConf(); err != nil {
 		return
 	}
+
+	return nil
+}
+
+func (conf *ITRDConf) BrokerClientName(accountName string) string {
+	for _, b := range conf.Brokers {
+		if b.AccountName == accountName {
+			return b.ProcessName
+		}
+	}
+	return ""
+}
+
+func hasDevice(device string) bool {
+	infos, _ := disk.Partitions(false)
+	for _, info := range infos {
+		if info.Device == device && info.Fstype != "UDF" {
+			return true
+		}
+	}
+	return false
+}
+
+func baseDevice() string {
+	var device string
+	if hasDevice(DeviceE) {
+		device = DeviceE
+	} else if hasDevice(DeviceD) {
+		device = DeviceD
+	} else {
+		device = DeviceC
+	}
+	return device
+}
+
+func configMatchingDevice(device, path *string) {
+	tmp := strings.Split(*path, "/")
+	tmp[0] = *device
+	*path = strings.Join(tmp, "/")
+}
+
+func updateConfigVersion() error {
+	rsp, err := Cli3.Get(context.TODO(), ConfigFileVersionKey)
+	if err != nil {
+		Logger.Error(fmt.Sprintf("get config version error: %v", err))
+		return err
+	}
+
+	if rsp.Count != 1 {
+		Logger.Error("number of config version key error")
+		return errors.New("number of config version key error")
+	}
+
+	var version int
+	version, err = strconv.Atoi(string(rsp.Kvs[0].Value))
+	if err != nil {
+		Logger.Error(fmt.Sprintf("config version not a number: %v", err))
+		return err
+	}
+
+	if _, err = Cli3.Put(context.TODO(), ConfigFileVersionKey, strconv.Itoa(version+1)); err != nil {
+		Logger.Error(fmt.Sprintf("config version puls error: %v", err))
+		return err
+	}
+
 	return nil
 }

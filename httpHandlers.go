@@ -1,31 +1,23 @@
 package main
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"path"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
 
-const (
-	OneAccountTimeOut = time.Second * 400
-)
-
 var (
-	BrokerClientIsRunning = false
-	JobChan = make(chan string, 1000)
-	currentProcessCancel context.CancelFunc
-	currentBrokerClient string
+	JobChan             = make(chan string, 1024)
+	VMDisableJobChannel = make(chan string, 1024)
 )
 
 type Account struct {
@@ -34,10 +26,19 @@ type Account struct {
 	Status     [3]bool // status[0]--positionFileStatus; status[1]--orderFileStatus; status[2]--tradeFileStatus
 }
 
+type Accounts struct {
+	AccountList []string `json:"accountList"`
+}
+
 func AccountList(c *gin.Context) {
 	if err := Reconfiguration(); err != nil {
 		Logger.Error(fmt.Sprintf("reload configuration error: %v", err))
 		os.Exit(1)
+	}
+
+	if err := createDataDir(); err != nil {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusInternalServerError, "Data": "create data dir error"})
+		return
 	}
 
 	accounts, err := responseData()
@@ -55,9 +56,113 @@ func AccountList(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ErrorCode": 0, "Data": accounts})
 }
 
+// prevent different user send same request to the cluster, and the same job do many times
+func BrokerClientProcessIsRunning(c *gin.Context) {
+	if len(JobChan) > 0 {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": ErrorCodeNodeIsBusy, "Data": "download process is running"})
+	} else {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": 0, "Data": ""})
+	}
+}
+
+func DownLoad(c *gin.Context) {
+	log.Println("current WS connection number:", len(WsHub.clients))
+	req, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusBadRequest, "Data": "request body error: " + err.Error()})
+	}
+	accounts := new(Accounts)
+	if err := json.Unmarshal(req, accounts); err != nil {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusBadRequest, "Data": "accounts unmarshal error: " + err.Error()})
+		return
+	}
+
+	if len(accounts.AccountList) != 1 {
+		c.JSON(
+			http.StatusOK,
+			gin.H{
+				"ErrorCode": http.StatusBadRequest,
+				"Data":      fmt.Sprintf("number of account require 1 but %d give", len(accounts.AccountList)),
+			},
+		)
+		return
+	}
+
+	if _, exist := VMBlackListAccountMap[accounts.AccountList[0]]; exist {
+		VMDisableJobChannel <- accounts.AccountList[0]
+	} else {
+		JobChan <- accounts.AccountList[0]
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ErrorCode": 0, "Data": "waiting for download..."})
+}
+
+func Stop(c *gin.Context) {
+	jobCount, vmDisableJobCount := len(JobChan), len(VMDisableJobChannel)
+	for i := 0; i < jobCount; i++ {
+		select {
+		case <-JobChan:
+		default:
+		}
+	}
+
+	for i := 0; i < vmDisableJobCount; i++ {
+		select {
+		case <-VMDisableJobChannel:
+		default:
+		}
+	}
+
+	err := StopAllJobs()
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": ErrorCodeStopJobError, "Data": err.Error()})
+	} else {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": 0, "Data": ""})
+	}
+}
+
+func WebServerStatus(c *gin.Context) {
+	nodeAddr, nodeTypeCode := c.Query("addr"), c.Query("sysTypeCode")
+	if nodeAddr == "" || nodeTypeCode == "" {
+		c.JSON(http.StatusBadRequest, gin.H{})
+	} else {
+		code, _ := strconv.Atoi(nodeTypeCode)
+		if code == SystemTypeCodePhysicalMachine {
+			PhysicalMachineMap[nodeAddr] = struct{}{}
+		}
+		c.JSON(http.StatusOK, gin.H{})
+	}
+}
+
+func UpdatePyFiles(c *gin.Context) {
+	if len(JobChan) > 0 {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusBadRequest, "Data": "There are jobs in queue, stop all job first"})
+		return
+	}
+
+	err := StopAllJobs()
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": ErrorCodeStopJobError, "Data": err.Error()})
+		return
+	}
+
+	if err := updatePyFiles(); err != nil {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusInternalServerError, "Data": err.Error()})
+		return
+	}
+
+	if err := updatePngFiles(); err != nil {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusInternalServerError, "Data": err.Error()})
+		return
+	}
+
+	time.Sleep(time.Second)
+	c.JSON(http.StatusOK, gin.H{"ErrorCode": 0, "Data": ""})
+}
+
 func responseData() (accounts []Account, err error) {
 	var files []os.FileInfo
-	outputDir := path.Join(Conf.OutputDir, time.Now().Format("20060102"))
+	outputDir := path.Join(MasterBaseDir, "tmp", time.Now().Format("20060102"))
 
 	_, err1 := os.Stat(outputDir)
 	if err1 == nil {
@@ -95,198 +200,102 @@ func responseData() (accounts []Account, err error) {
 	return
 }
 
-func BrokerClientProcessIsRunning(c *gin.Context) {
-	if BrokerClientIsRunning {
-		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusBadRequest, "Data": "download process is running"})
+func createDataDir() (err error) {
+	dataDir := filepath.Join(MasterBaseDir, "tmp", time.Now().Format("20060102"))
+	if _, err = os.Stat(dataDir); os.IsNotExist(err) {
+		if err1 := os.Mkdir(dataDir, 0755); err1 != nil {
+			Logger.Error(fmt.Sprintf("mkdir %s error: %v", dataDir, err1))
+			return err1
+		}
+		if err1 := os.Chmod(dataDir, 0755); err1 != nil {
+			Logger.Error(fmt.Sprintf("chmod dir %s error: %v", dataDir, err1))
+			return err1
+		}
 	} else {
-		c.JSON(http.StatusOK, gin.H{"ErrorCode": 0, "Data": ""})
+		if err != nil {
+			Logger.Error(fmt.Sprintf("create data dir %s, get dir status error: %v", dataDir, err))
+			return err
+		}
 	}
+	return nil
 }
 
-func DownLoad(c *gin.Context) {
-	log.Println("current WS connection number:", len(WsHub.clients))
-	req, err := ioutil.ReadAll(c.Request.Body)
+func updatePyFiles() error {
+	newPyFileList, err := ioutil.ReadDir(MasterBaseDir + "pys")
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusBadRequest, "Data": "request body error: " + err.Error()})
-	}
-	accounts := new(Accounts)
-	if err := json.Unmarshal(req, accounts); err != nil {
-		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusBadRequest, "Data": "accounts unmarshal error: " + err.Error()})
-		return
+		Logger.Error(fmt.Sprintf("open dir[%s] error: %v", MasterBaseDir+"pys", err))
+		return err
 	}
 
-	if len(accounts.AccountList) != 1 {
-		c.JSON(
-			http.StatusOK,
-			gin.H{
-				"ErrorCode": http.StatusBadRequest,
-				"Data":      fmt.Sprintf("number of account require 1 but %d give", len(accounts.AccountList)),
-			},
-		)
-		return
-	}
-	//if rsp, err := downLoadAccount(accounts.AccountList[0]); err != nil {
-	//	c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusInternalServerError, "Data": fmt.Sprintf("start python process error: %v", err)})
-	//} else {
-	//	c.JSON(http.StatusOK, gin.H{"ErrorCode": 0, "Data": rsp})
-	//}
-
-	JobChan <- accounts.AccountList[0]
-	c.JSON(http.StatusOK, gin.H{"ErrorCode": 0, "Data": "waiting for download..."})
-}
-
-func Stop(c *gin.Context) {
-	defer func() {
-		currentBrokerClient = ""
-	}()
-	jobCount := len(JobChan)
-	for i := 0; i < jobCount; i++ {
-		select {
-		case <- JobChan:
-		default:
-		}
-	}
-	currentProcessCancel()
-
-	rspData := ""
-	if currentBrokerClient != "" {
-		if err := killWindowsProcessByName(currentBrokerClient); err != nil {
-			rspData = fmt.Sprintf("kill client[%s] error: %v", currentBrokerClient, err)
-			log.Println(rspData)
-			Logger.Error(rspData)
-		}
-	}
-	c.JSON(http.StatusOK, gin.H{"ErrorCode": 0, "Data": rspData})
-}
-
-func downLoadAccount(account string) (*BrokerClientRequest, error) {
-	defer func() {
-		BrokerClientIsRunning = false
-		if err := recover(); err != nil {
-			Logger.Error(err)
-		}
-	}()
-
-	for i := 0; i < len(BrokerClientResponseChannel); i++ {
-		<-BrokerClientResponseChannel
-	}
-
-	BrokerClientIsRunning = true
-	log.Println(account)
-	ctx, cancel := context.WithCancel(context.TODO())
-	currentProcessCancel = cancel
-
-	var rsp *BrokerClientRequest
-	processErrorChannel := make(chan error)
-	defer close(processErrorChannel)
-
-	for _, b := range Conf.Brokers {
-		if b.AccountName == account {
-			currentBrokerClient = b.ProcessName
-		}
-	}
-
-	cmd := exec.CommandContext(ctx, "python", Conf.PyProcessPath, account)
-	stdOutMsg, stdErrMsg := bytes.NewBuffer(nil), bytes.NewBuffer(nil)
-	cmd.Stdout, cmd.Stderr = stdOutMsg, stdErrMsg
-
-	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				Logger.Error(fmt.Sprintf("download %s panic: %v \n", account, err))
-			}
-		}()
-
-		if err := cmd.Start(); err != nil {
-			Logger.Error(fmt.Sprintf("start %s error: %v", account, err))
-			log.Println(fmt.Sprintf("start %s error: %v", account, err))
-			processErrorChannel <- err
-		}
-
-		if err := cmd.Wait(); err != nil {
-			Logger.Error(fmt.Sprintf("Error: deal with %s error %v", account, err))
-			log.Println(fmt.Sprintf("Error: deal with %s error %v", account, err))
-			select {
-			case _, ok := <- processErrorChannel:
-				if ok {
-					processErrorChannel <- err
-				}
-			default:
-				processErrorChannel <- err
-			}
-
+	if len(newPyFileList) != len(*PyFileMap) {
+		if err = PyFileMap.PyFileMapInit(); err != nil {
+			return err
 		} else {
-			if stdErrMsg.String() != "" {
-				Logger.Error(fmt.Sprintf("do %s error: %v", account, err))
-				log.Println(fmt.Sprintf("do %s error: %v", account, err))
-				select {
-				case _, ok := <- processErrorChannel:
-					if ok {
-						processErrorChannel <- errors.New(stdErrMsg.String())
-					}
-				default:
-					processErrorChannel <- errors.New(stdErrMsg.String())
-				}
-			}
+			return nil
 		}
-	}()
+	}
 
-	select {
-	case err := <-processErrorChannel:
-		Logger.Error(fmt.Sprintf("exec py [%s] error: %v", account, err))
-		log.Println(fmt.Sprintf("exec py [%s] error: %v", account, err))
-		return rsp, err
-	case rsp = <-BrokerClientResponseChannel:
-		Logger.Debug(fmt.Sprintf("py response[%s]: %v \n", account, rsp))
-		log.Println(fmt.Sprintf("py response[%s]: %v \n", account, rsp))
-		return rsp, nil
-	case <-time.After(OneAccountTimeOut):
-		Logger.Debug(fmt.Sprintf("py [%s] time out \n", account))
-		log.Println(fmt.Sprintf("py [%s] time out \n", account))
-		cancel()
-		if err := killWindowsProcessByName(currentBrokerClient); err != nil {
-			Logger.Error(fmt.Sprintf("timeout cancel kill client[%s] error: %v", currentBrokerClient, err))
-			log.Println(fmt.Sprintf("timeout cancel kill client[%s] error: %v", currentBrokerClient, err))
+	pyFileMapModified := false
+	for _, pyName := range newPyFileList {
+		if sha1, exist := (*PyFileMap)[pyName.Name()]; exist {
+			newSha1, _ := fileSha1(filepath.Join(MasterBaseDir, "pys", pyName.Name()))
+			if sha1 != newSha1 {
+				pyFileMapModified = true
+				break
+			}
+		} else {
+			pyFileMapModified = true
+			break
 		}
-		currentBrokerClient = ""
-		return rsp, errors.New(fmt.Sprintf("%s timeout", account))
+	}
+
+	if pyFileMapModified {
+		if err = PyFileMap.PyFileMapInit(); err != nil {
+			return err
+		} else {
+			return nil
+		}
+	} else {
+		return nil
 	}
 }
 
-type Accounts struct {
-	AccountList []string `json:"accountList"`
-}
+func updatePngFiles() error {
+	newPngFileList, err := ioutil.ReadDir(MasterBaseDir + "pngs")
+	if err != nil {
+		Logger.Error(fmt.Sprintf("open dir[%s] error: %v", MasterBaseDir+"pngs", err))
+		return err
+	}
 
-func WebServerStatus(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"Status": "OK"})
-}
-
-func JobServer() {
-	defer func() {
-		if err := recover(); err != nil {
-			log.Println(fmt.Sprintf("Job Server panic: %v", err))
-			Logger.Error(fmt.Sprintf("Job Server panic: %v", err))
+	if len(newPngFileList) != len(*PngFileMap) {
+		if err = PngFileMap.PngFileMapInit(); err != nil {
+			return err
+		} else {
+			return nil
 		}
-	}()
+	}
 
-	for {
-		select {
-		case accountName := <- JobChan:
-			_, err := downLoadAccount(accountName)
-			if err != nil {
-				resData := fmt.Sprintf("download %s error: %v", accountName, err)
-				log.Println(resData)
-				Logger.Error(resData)
-				msg, _ := json.Marshal(BrokerClientRequest{
-					AccountId:            "",
-					AccountName:          accountName,
-					Position:             "err",
-					Order:                "err",
-					Trade:                "err",
-					ErrMsg:               resData,
-				})
-				WsHub.broadcast <- msg
+	pngFileMapModified := false
+	for _, pngName := range newPngFileList {
+		if sha1, exist := (*PngFileMap)[pngName.Name()]; exist {
+			newSha1, _ := fileSha1(filepath.Join(MasterBaseDir, "pngs", pngName.Name()))
+			if sha1 != newSha1 {
+				pngFileMapModified = true
+				break
 			}
+		} else {
+			pngFileMapModified = true
+			break
 		}
+	}
+
+	if pngFileMapModified {
+		if err = PngFileMap.PngFileMapInit(); err != nil {
+			return err
+		} else {
+			return nil
+		}
+	} else {
+		return nil
 	}
 }

@@ -1,0 +1,31 @@
+2020-12-01T16:53:46.092+0800	DEBUG	ITRD_distributed/ITRDJobServer.go:199	Job server: Listening and serving tcp on 0.0.0.0:18199
+2020-12-02T18:31:31.872+0800	ERROR	ITRD_distributed/mainJobServer.go:66	Job Server exit: interrupt
+2020-12-02T18:34:00.819+0800	DEBUG	ITRD_distributed/ITRDJobServer.go:196	Job server: Listening and serving tcp on 0.0.0.0:18199
+2020-12-02T18:36:48.017+0800	ERROR	ITRD_distributed/ITRDJobServer.go:404	TY04 timeout
+2020-12-02T20:02:59.690+0800	DEBUG	ITRD_distributed/ITRDJobServer.go:196	Job server: Listening and serving tcp on 0.0.0.0:18199
+2020-12-02T20:04:11.462+0800	ERROR	ITRD_distributed/ITRDJobServer.go:409	QG02 timeout
+2020-12-03T09:36:24.948+0800	ERROR	ITRD_distributed/mainJobServer.go:66	Job Server exit: interrupt
+2020-12-03T09:41:26.422+0800	DEBUG	ITRD_distributed/ITRDJobServer.go:196	Job server: Listening and serving tcp on 0.0.0.0:18199
+2020-12-03T09:46:35.819+0800	ERROR	ITRD_distributed/ITRDJobServer.go:410	TY04 timeout
+2020-12-03T11:10:11.138+0800	ERROR	ITRD_distributed/mainJobServer.go:66	Job Server exit: interrupt
+2020-12-03T11:11:44.223+0800	ERROR	ITRD_distributed/ITRDJobServer.go:74	192.168.1.151 report to master check error: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing dial tcp 192.168.1.72:8199: connectex: No connection could be made because the target machine actively refused it."
+2020-12-03T11:14:10.466+0800	DEBUG	ITRD_distributed/ITRDJobServer.go:207	Job server: Listening and serving tcp on 0.0.0.0:18199
+2020-12-03T11:16:00.318+0800	ERROR	ITRD_distributed/ITRDJobServer.go:420	QG02 timeout
+2020-12-03T11:16:24.443+0800	ERROR	ITRD_distributed/ITRDJobServer.go:420	JPHS timeout
+2020-12-03T13:43:25.821+0800	ERROR	ITRD_distributed/mainJobServer.go:66	Job Server exit: interrupt
+2020-12-03T13:46:17.844+0800	DEBUG	ITRD_distributed/ITRDJobServer.go:207	Job server: Listening and serving tcp on 0.0.0.0:18199
+2020-12-03T13:47:07.732+0800	ERROR	ITRD_distributed/ITRDJobServer.go:420	TF07 timeout
+2020-12-03T13:47:43.799+0800	ERROR	ITRD_distributed/ITRDJobServer.go:420	AP09 timeout
+2020-12-03T13:48:03.852+0800	ERROR	ITRD_distributed/ITRDJobServer.go:420	TY01 timeout
+2020-12-03T13:48:39.101+0800	ERROR	ITRD_distributed/ITRDJobServer.go:420	TJ10 timeout
+2020-12-03T13:49:16.339+0800	ERROR	ITRD_distributed/ITRDJobServer.go:420	JC02 timeout
+2020-12-03T14:12:56.872+0800	ERROR	ITRD_distributed/ITRDJobServer.go:420	TY04 timeout
+2020-12-03T14:13:49.200+0800	ERROR	ITRD_distributed/ITRDJobServer.go:420	AX07 timeout
+2020-12-03T14:14:09.321+0800	ERROR	ITRD_distributed/ITRDJobServer.go:420	AX07 timeout
+2020-12-03T14:14:38.416+0800	ERROR	ITRD_distributed/ITRDJobServer.go:420	AX07 timeout
+2020-12-03T14:14:58.503+0800	ERROR	ITRD_distributed/ITRDJobServer.go:420	AX07 timeout
+2020-12-03T14:18:15.495+0800	ERROR	ITRD_distributed/ITRDJobServer.go:420	TY04 timeout
+2020-12-04T12:09:09.821+0800	ERROR	ITRD_distributed/mainJobServer.go:66	Job Server exit: interrupt
+2020-12-10T11:01:16.356+0800	ERROR	ITRD_distributed/fileHandler.go:117	create dest config file[./pngs/shenGang_no_order_data.png] error: open ./pngs/shenGang_no_order_data.png: The system cannot find the path specified.
+2020-12-10T11:01:16.359+0800	ERROR	ITRD_distributed/fileHandler.go:166	pull py file /home/xy/ITRD/pngs/shenGang_no_order_data.png from master error: open ./pngs/shenGang_no_order_data.png: The system cannot find the path specified.
+2020-12-10T11:01:16.360+0800	ERROR	ITRD_distributed/mainJobServer.go:62	sync png files error: open ./pngs/shenGang_no_order_data.png: The system cannot find the path specified.

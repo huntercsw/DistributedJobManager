@@ -5,52 +5,137 @@
         <accountId>99000601211</accountId>
         <accountName>TY04</accountName>
         <password>386005</password>
-        <exePath>C:/new_zx_allin1_8.60/TdxW.exe</exePath>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
     </broker>
     <broker>
         <name>zhongxin</name>
         <appVersion>中信证券至信全能版V8.60</appVersion>
-        <accountId>99000601255</accountId>
-        <accountName>TY05</accountName>
+        <accountId>8009216541</accountId>
+        <accountName>TX03</accountName>
+		<credit>1</credit>
+        <password>138579</password>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
+    </broker>
+	<broker>
+        <name>zhongxin</name>
+        <appVersion>中信证券至信全能版V8.60</appVersion>
+        <accountId>8009206479</accountId>
+        <accountName>AX07</accountName>
+        <credit>1</credit>
+        <password>409867</password>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
+    </broker>
+	<broker>
+        <name>zhongxin</name>
+        <appVersion>中信证券至信全能版V8.60</appVersion>
+        <accountId>41900046392</accountId>
+        <accountName>AP03</accountName>
+        <password>700736</password>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
+    </broker>
+    <broker>
+        <name>zhongxin</name>
+        <appVersion>中信证券至信全能版V8.60</appVersion>
+        <accountId>34100000155</accountId>
+        <accountName>AP04</accountName>
+        <password>627035</password>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
+    </broker>
+    <broker>
+        <name>zhongxin</name>
+        <appVersion>中信证券至信全能版V8.60</appVersion>
+        <accountId>20039561</accountId>
+        <accountName>AP07</accountName>
+        <password>409867</password>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
+    </broker>
+    <broker>
+        <name>zhongxin</name>
+        <appVersion>中信证券至信全能版V8.60</appVersion>
+        <accountId>3000131920</accountId>
+        <accountName>TF07</accountName>
+        <password>782351</password>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
+    </broker>
+    <broker>
+        <name>zhongxin</name>
+        <appVersion>中信证券至信全能版V8.60</appVersion>
+        <accountId>30200141971</accountId>
+        <accountName>TF09</accountName>
+        <password>628730</password>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
+    </broker>
+    <broker>
+        <name>zhongxin</name>
+        <appVersion>中信证券至信全能版V8.60</appVersion>
+        <accountId>99000601225</accountId>
+        <accountName>TY07</accountName>
         <password>386005</password>
-        <exePath>C:/new_zx_allin1_8.60/TdxW.exe</exePath>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
     </broker>
     <broker>
-        <name>huatai</name>
-        <appVersion>网上股票交易系统5.0</appVersion>
-        <accountId>666800007791</accountId>
-        <accountName>TJ39</accountName>
-        <credit>TX39</credit>
-        <password>386005</password>
-        <commCode>123321</commCode>
-        <exePath>C:/htwt/xiadan.exe</exePath>
+        <name>zhongxin</name>
+        <appVersion>中信证券至信全能版V8.60</appVersion>
+        <accountId>83100003043</accountId>
+        <accountName>TJ03</accountName>
+        <password>138579</password>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
     </broker>
     <broker>
-        <name>huatai</name>
-        <appVersion>网上股票交易系统5.0</appVersion>
-        <accountId>666810029818</accountId>
-        <accountName>TF14</accountName>
-        <password>654892</password>
-        <commCode>123321</commCode>
-        <exePath>C:/htwt/xiadan.exe</exePath>
+        <name>zhongxin</name>
+        <appVersion>中信证券至信全能版V8.60</appVersion>
+        <accountId>300048805</accountId>
+        <accountName>AP09</accountName>
+        <password>378059</password>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
     </broker>
     <broker>
-        <name>haitong</name>
-        <appVersion>网上股票交易系统5.0</appVersion>
-        <accountId>0480069422</accountId>
-        <accountName>TJ10</accountName>
-        <password>386005</password>
-        <commCode>386005</commCode>
-        <exePath>C:/海通证券委托/xiadan.exe</exePath>
+        <name>zhongxin</name>
+        <appVersion>中信证券至信全能版V8.60</appVersion>
+        <accountId>36008961</accountId>
+        <accountName>ZZ08</accountName>
+        <password>907304</password>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
     </broker>
     <broker>
-        <name>haitong</name>
-        <appVersion>网上股票交易系统5.0</appVersion>
-        <accountId>2720025913</accountId>
-        <accountName>SY01</accountName>
-        <password>524816</password>
-        <commCode>123321</commCode>
-        <exePath>C:/海通证券委托/xiadan.exe</exePath>
+        <name>zhongxin</name>
+        <appVersion>中信证券至信全能版V8.60</appVersion>
+        <accountId>1900712972</accountId>
+        <accountName>TJ42</accountName>
+        <password>854369</password>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
+    </broker>
+    <broker>
+        <name>zhongxin</name>
+        <appVersion>中信证券至信全能版V8.60</appVersion>
+        <accountId>103800000117</accountId>
+        <accountName>TY01</accountName>
+        <password>760842</password>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
+    </broker>
+    <broker>
+        <name>zhongxin</name>
+        <appVersion>中信证券至信全能版V8.60</appVersion>
+        <accountId>99000000347</accountId>
+        <accountName>ZX02</accountName>
+        <password>817039</password>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
+    </broker>
+	<broker>
+        <name>zhongxin</name>
+        <appVersion>中信证券至信全能版V8.60</appVersion>
+        <accountId>3000132237</accountId>
+        <accountName>TX01</accountName>
+        <password>540672</password>
+        <exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
+    </broker>
+    <broker>
+	<name>zhongxin</name>
+	<appVersion>中信证券至信全能版V8.60</appVersion>
+	<accountId>36008995</accountId>
+	<accountName>ZZ09</accountName>
+	<password>745189</password>
+	<exePath>C:/ITRD/clients/new_zx_allin1_8.60/TdxW.exe</exePath>
     </broker>
     <broker>
         <name>guotaijunan</name>
@@ -59,16 +144,15 @@
         <accountName>CXXY</accountName>
         <credit>1</credit>
         <password>281065</password>
-        <exePath>D:/券商客户端/国泰君安锐智版2/Tc.exe</exePath>
+        <exePath>C:/ITRD/clients/国泰君安锐智版2/Tc.exe</exePath>
     </broker>
     <broker>
         <name>guotaijunan</name>
         <appVersion>国泰君安锐智版网上交易V6.01</appVersion>
         <accountId>3785988</accountId>
         <accountName>JPHS</accountName>
-        <credit>1</credit>
         <password>903743</password>
-        <exePath>D:/券商客户端/国泰君安锐智版2/Tc.exe</exePath>
+        <exePath>C:/ITRD/clients/国泰君安锐智版2/Tc.exe</exePath>
     </broker>
     <broker>
         <name>guotaijunan</name>
@@ -76,28 +160,51 @@
         <accountId>59662</accountId>
         <accountName>CX02</accountName>
         <password>697814</password>
-        <exePath>D:/券商客户端/国泰君安锐智版/Tc.exe</exePath>
+        <exePath>C:/ITRD/clients/国泰君安锐智版/Tc.exe</exePath>
+    </broker>
+	<broker>
+        <name>guotaijunan</name>
+        <appVersion>国泰君安锐智版网上交易V6.01</appVersion>
+        <accountId>3778658</accountId>
+        <accountName>JP00</accountName>
+        <password>965102</password>
+        <exePath>C:/ITRD/clients/国泰君安锐智版/Tc.exe</exePath>
     </broker>
     <broker>
-        <name>shengang</name>
-        <appVersion>申港证券通达信版V1.16</appVersion>
-        <accountId>1001011857</accountId>
-        <accountName>QG02</accountName>
-        <password>961430</password>
-        <exePath>D:/券商客户端/new_sgzq_v6/TdxW.exe</exePath>
+        <name>guotaijunan</name>
+        <appVersion>国泰君安锐智版网上交易V6.01</appVersion>
+        <accountId>6329039</accountId>
+        <accountName>JC02</accountName>
+        <password>530622</password>
+        <exePath>C:/ITRD/clients/国泰君安锐智版/Tc.exe</exePath>
+    </broker>
+    <broker>
+        <name>guotaijunan</name>
+        <appVersion>国泰君安锐智版网上交易V6.01</appVersion>
+        <accountId>18230682</accountId>
+        <accountName>ZZ01</accountName>
+        <password>302859</password>
+        <exePath>C:/ITRD/clients/国泰君安锐智版/Tc.exe</exePath>
     </broker>
 
-    <outputDir>D:/project/InnoTradeRecordDownload/tmp</outputDir>
-
-    <pyProcessPath>D:/project/InnoTradeRecordDownload/main.py</pyProcessPath>
+    <outputDir>E:/ITRD/InnoTradeRecordDownload/tmp</outputDir>
+	
+	<pyProcessPath>E:/ITRD/InnoTradeRecordDownload/main.py</pyProcessPath>
 
     <log>
         <level>debug</level>
-        <path>D:/project/InnoTradeRecordDownload/logs</path>
+        <path>E:/ITRD/InnoTradeRecordDownload/logs</path>
     </log>
-
-    <master>
-        <ip>192.168.1.151</ip>
+	
+	<master>
+        <ip>192.168.1.72</ip>
         <port>8199</port>
     </master>
+
+    <virtualMachineBlackList>
+        <broker>guotaijunan</broker>
+    </virtualMachineBlackList>
+    
 </ITRD>
+
+

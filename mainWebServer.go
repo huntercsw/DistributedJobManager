@@ -9,12 +9,6 @@ import (
 	"os/signal"
 )
 
-const (
-	WebPort             = "8090"
-	WsPort              = "8099"
-	ConsolePort         = "8199"
-)
-
 func init() {
 	InitLogger("ITRD_webServer")
 
@@ -22,9 +16,33 @@ func init() {
 		Logger.Error(fmt.Sprintf("config init error: %v \n", err))
 		log.Fatal(err.Error())
 	}
+
+	if err := Cli3Init(); err != nil {
+		Logger.Error(fmt.Sprintf("cli3 init error: %v", err))
+		log.Println(fmt.Sprintf("cli3 init error: %v", err))
+		os.Exit(1)
+	}
+
+	if _, err := Cli3.Put(context.TODO(), ConfigFileVersionKey, "0"); err != nil {
+		Logger.Error(fmt.Sprintf("put initial config version to etcd error: %v", err))
+		os.Exit(1)
+	}
+
+	if err := PyFileMap.PyFileMapInit(); err != nil {
+		Logger.Error(fmt.Sprintf("py file map map init error: %v", err))
+		log.Println(fmt.Sprintf("py file map map init error: %v", err))
+		os.Exit(1)
+	}
+
+	if err := PngFileMap.PngFileMapInit(); err != nil {
+		Logger.Error(fmt.Sprintf("png file map init error: %v", err))
+		log.Println(fmt.Sprintf("png file map init error: %v", err))
+		os.Exit(1)
+	}
 }
 
 func main() {
+	defer Cli3.Close()
 	defer func() {
 		if err := recover(); err != nil {
 			Logger.Error(fmt.Sprintf("panic: %v \n", err))
@@ -63,12 +81,12 @@ func main() {
 
 	go RunConsoleServer()
 
-	if err := Cli3Init(); err != nil {
-		Logger.Error(fmt.Sprintf("cli3 init error: %v", err))
-		log.Println(fmt.Sprintf("cli3 init error: %v", err))
-		return
-	}
-	defer Cli3.Close()
+	//if err := Cli3Init(); err != nil {
+	//	Logger.Error(fmt.Sprintf("cli3 init error: %v", err))
+	//	log.Println(fmt.Sprintf("cli3 init error: %v", err))
+	//	return
+	//}
+	//defer Cli3.Close()
 
 	err := MasterInit()
 

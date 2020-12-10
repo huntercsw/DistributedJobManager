@@ -9,6 +9,7 @@ func RouterSetUp(r *gin.Engine) {
 	r.GET("/api/brokerClientRunningCheck", BrokerClientProcessIsRunning)
 	r.GET("/api/stop", Stop)
 	r.GET("/api/webServerStatus", WebServerStatus)
+	r.POST("/api/py/update/files", UpdatePyFiles)
 }
 
 func WsRouterSetUp(r *gin.Engine) {

@@ -24,7 +24,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-type BrokerClientRequest struct {
+type JobResultRequest struct {
 	AccountId            string   `protobuf:"bytes,1,opt,name=accountId,proto3" json:"accountId,omitempty"`
 	AccountName          string   `protobuf:"bytes,2,opt,name=accountName,proto3" json:"accountName,omitempty"`
 	Position             string   `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
@@ -36,136 +36,318 @@ type BrokerClientRequest struct {
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *BrokerClientRequest) Reset()         { *m = BrokerClientRequest{} }
-func (m *BrokerClientRequest) String() string { return proto.CompactTextString(m) }
-func (*BrokerClientRequest) ProtoMessage()    {}
-func (*BrokerClientRequest) Descriptor() ([]byte, []int) {
+func (m *JobResultRequest) Reset()         { *m = JobResultRequest{} }
+func (m *JobResultRequest) String() string { return proto.CompactTextString(m) }
+func (*JobResultRequest) ProtoMessage()    {}
+func (*JobResultRequest) Descriptor() ([]byte, []int) {
 	return fileDescriptor_2d88c545b18eb0c5, []int{0}
 }
 
-func (m *BrokerClientRequest) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_BrokerClientRequest.Unmarshal(m, b)
+func (m *JobResultRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_JobResultRequest.Unmarshal(m, b)
 }
-func (m *BrokerClientRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_BrokerClientRequest.Marshal(b, m, deterministic)
+func (m *JobResultRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_JobResultRequest.Marshal(b, m, deterministic)
 }
-func (m *BrokerClientRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_BrokerClientRequest.Merge(m, src)
+func (m *JobResultRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_JobResultRequest.Merge(m, src)
 }
-func (m *BrokerClientRequest) XXX_Size() int {
-	return xxx_messageInfo_BrokerClientRequest.Size(m)
+func (m *JobResultRequest) XXX_Size() int {
+	return xxx_messageInfo_JobResultRequest.Size(m)
 }
-func (m *BrokerClientRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_BrokerClientRequest.DiscardUnknown(m)
+func (m *JobResultRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_JobResultRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_BrokerClientRequest proto.InternalMessageInfo
+var xxx_messageInfo_JobResultRequest proto.InternalMessageInfo
 
-func (m *BrokerClientRequest) GetAccountId() string {
+func (m *JobResultRequest) GetAccountId() string {
 	if m != nil {
 		return m.AccountId
 	}
 	return ""
 }
 
-func (m *BrokerClientRequest) GetAccountName() string {
+func (m *JobResultRequest) GetAccountName() string {
 	if m != nil {
 		return m.AccountName
 	}
 	return ""
 }
 
-func (m *BrokerClientRequest) GetPosition() string {
+func (m *JobResultRequest) GetPosition() string {
 	if m != nil {
 		return m.Position
 	}
 	return ""
 }
 
-func (m *BrokerClientRequest) GetOrder() string {
+func (m *JobResultRequest) GetOrder() string {
 	if m != nil {
 		return m.Order
 	}
 	return ""
 }
 
-func (m *BrokerClientRequest) GetTrade() string {
+func (m *JobResultRequest) GetTrade() string {
 	if m != nil {
 		return m.Trade
 	}
 	return ""
 }
 
-func (m *BrokerClientRequest) GetErrMsg() string {
+func (m *JobResultRequest) GetErrMsg() string {
 	if m != nil {
 		return m.ErrMsg
 	}
 	return ""
 }
 
-type ConsoleResponse struct {
+type JobResultResponse struct {
 	Rsp                  string   `protobuf:"bytes,1,opt,name=rsp,proto3" json:"rsp,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *ConsoleResponse) Reset()         { *m = ConsoleResponse{} }
-func (m *ConsoleResponse) String() string { return proto.CompactTextString(m) }
-func (*ConsoleResponse) ProtoMessage()    {}
-func (*ConsoleResponse) Descriptor() ([]byte, []int) {
+func (m *JobResultResponse) Reset()         { *m = JobResultResponse{} }
+func (m *JobResultResponse) String() string { return proto.CompactTextString(m) }
+func (*JobResultResponse) ProtoMessage()    {}
+func (*JobResultResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_2d88c545b18eb0c5, []int{1}
 }
 
-func (m *ConsoleResponse) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ConsoleResponse.Unmarshal(m, b)
+func (m *JobResultResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_JobResultResponse.Unmarshal(m, b)
 }
-func (m *ConsoleResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ConsoleResponse.Marshal(b, m, deterministic)
+func (m *JobResultResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_JobResultResponse.Marshal(b, m, deterministic)
 }
-func (m *ConsoleResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ConsoleResponse.Merge(m, src)
+func (m *JobResultResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_JobResultResponse.Merge(m, src)
 }
-func (m *ConsoleResponse) XXX_Size() int {
-	return xxx_messageInfo_ConsoleResponse.Size(m)
+func (m *JobResultResponse) XXX_Size() int {
+	return xxx_messageInfo_JobResultResponse.Size(m)
 }
-func (m *ConsoleResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_ConsoleResponse.DiscardUnknown(m)
+func (m *JobResultResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_JobResultResponse.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_ConsoleResponse proto.InternalMessageInfo
+var xxx_messageInfo_JobResultResponse proto.InternalMessageInfo
 
-func (m *ConsoleResponse) GetRsp() string {
+func (m *JobResultResponse) GetRsp() string {
 	if m != nil {
 		return m.Rsp
 	}
 	return ""
 }
 
+type ReportRequest struct {
+	AccountId            string   `protobuf:"bytes,1,opt,name=accountId,proto3" json:"accountId,omitempty"`
+	AccountName          string   `protobuf:"bytes,2,opt,name=accountName,proto3" json:"accountName,omitempty"`
+	Host                 string   `protobuf:"bytes,3,opt,name=host,proto3" json:"host,omitempty"`
+	Code                 int32    `protobuf:"varint,4,opt,name=code,proto3" json:"code,omitempty"`
+	Msg                  string   `protobuf:"bytes,5,opt,name=msg,proto3" json:"msg,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ReportRequest) Reset()         { *m = ReportRequest{} }
+func (m *ReportRequest) String() string { return proto.CompactTextString(m) }
+func (*ReportRequest) ProtoMessage()    {}
+func (*ReportRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2d88c545b18eb0c5, []int{2}
+}
+
+func (m *ReportRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ReportRequest.Unmarshal(m, b)
+}
+func (m *ReportRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ReportRequest.Marshal(b, m, deterministic)
+}
+func (m *ReportRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReportRequest.Merge(m, src)
+}
+func (m *ReportRequest) XXX_Size() int {
+	return xxx_messageInfo_ReportRequest.Size(m)
+}
+func (m *ReportRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReportRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReportRequest proto.InternalMessageInfo
+
+func (m *ReportRequest) GetAccountId() string {
+	if m != nil {
+		return m.AccountId
+	}
+	return ""
+}
+
+func (m *ReportRequest) GetAccountName() string {
+	if m != nil {
+		return m.AccountName
+	}
+	return ""
+}
+
+func (m *ReportRequest) GetHost() string {
+	if m != nil {
+		return m.Host
+	}
+	return ""
+}
+
+func (m *ReportRequest) GetCode() int32 {
+	if m != nil {
+		return m.Code
+	}
+	return 0
+}
+
+func (m *ReportRequest) GetMsg() string {
+	if m != nil {
+		return m.Msg
+	}
+	return ""
+}
+
+type ReportResponse struct {
+	Rsp                  string   `protobuf:"bytes,1,opt,name=rsp,proto3" json:"rsp,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ReportResponse) Reset()         { *m = ReportResponse{} }
+func (m *ReportResponse) String() string { return proto.CompactTextString(m) }
+func (*ReportResponse) ProtoMessage()    {}
+func (*ReportResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2d88c545b18eb0c5, []int{3}
+}
+
+func (m *ReportResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ReportResponse.Unmarshal(m, b)
+}
+func (m *ReportResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ReportResponse.Marshal(b, m, deterministic)
+}
+func (m *ReportResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ReportResponse.Merge(m, src)
+}
+func (m *ReportResponse) XXX_Size() int {
+	return xxx_messageInfo_ReportResponse.Size(m)
+}
+func (m *ReportResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ReportResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ReportResponse proto.InternalMessageInfo
+
+func (m *ReportResponse) GetRsp() string {
+	if m != nil {
+		return m.Rsp
+	}
+	return ""
+}
+
+type CheckRequest struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CheckRequest) Reset()         { *m = CheckRequest{} }
+func (m *CheckRequest) String() string { return proto.CompactTextString(m) }
+func (*CheckRequest) ProtoMessage()    {}
+func (*CheckRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2d88c545b18eb0c5, []int{4}
+}
+
+func (m *CheckRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CheckRequest.Unmarshal(m, b)
+}
+func (m *CheckRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CheckRequest.Marshal(b, m, deterministic)
+}
+func (m *CheckRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CheckRequest.Merge(m, src)
+}
+func (m *CheckRequest) XXX_Size() int {
+	return xxx_messageInfo_CheckRequest.Size(m)
+}
+func (m *CheckRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_CheckRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CheckRequest proto.InternalMessageInfo
+
+type CheckResponse struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CheckResponse) Reset()         { *m = CheckResponse{} }
+func (m *CheckResponse) String() string { return proto.CompactTextString(m) }
+func (*CheckResponse) ProtoMessage()    {}
+func (*CheckResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2d88c545b18eb0c5, []int{5}
+}
+
+func (m *CheckResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CheckResponse.Unmarshal(m, b)
+}
+func (m *CheckResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CheckResponse.Marshal(b, m, deterministic)
+}
+func (m *CheckResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CheckResponse.Merge(m, src)
+}
+func (m *CheckResponse) XXX_Size() int {
+	return xxx_messageInfo_CheckResponse.Size(m)
+}
+func (m *CheckResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_CheckResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CheckResponse proto.InternalMessageInfo
+
 func init() {
-	proto.RegisterType((*BrokerClientRequest)(nil), "main.BrokerClientRequest")
-	proto.RegisterType((*ConsoleResponse)(nil), "main.ConsoleResponse")
+	proto.RegisterType((*JobResultRequest)(nil), "main.JobResultRequest")
+	proto.RegisterType((*JobResultResponse)(nil), "main.JobResultResponse")
+	proto.RegisterType((*ReportRequest)(nil), "main.ReportRequest")
+	proto.RegisterType((*ReportResponse)(nil), "main.ReportResponse")
+	proto.RegisterType((*CheckRequest)(nil), "main.CheckRequest")
+	proto.RegisterType((*CheckResponse)(nil), "main.CheckResponse")
 }
 
 func init() { proto.RegisterFile("ITRD.proto", fileDescriptor_2d88c545b18eb0c5) }
 
 var fileDescriptor_2d88c545b18eb0c5 = []byte{
-	// 227 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x90, 0xcd, 0x4a, 0x03, 0x31,
-	0x14, 0x85, 0x1d, 0xdb, 0x0e, 0xf6, 0x56, 0x50, 0xae, 0x3f, 0xc4, 0xe2, 0xa2, 0x8c, 0x1b, 0x57,
-	0xb3, 0xd0, 0x37, 0x68, 0xdd, 0x74, 0xa1, 0x60, 0xf0, 0x05, 0x62, 0xe7, 0x22, 0xc1, 0x36, 0x37,
-	0xde, 0xa4, 0x8f, 0xe6, 0xfb, 0x49, 0x32, 0x41, 0x07, 0xe9, 0x2e, 0xdf, 0x77, 0x02, 0xc9, 0x39,
-	0x00, 0xeb, 0x37, 0xfd, 0xd4, 0x7a, 0xe1, 0xc8, 0x38, 0xde, 0x19, 0xeb, 0x9a, 0xef, 0x0a, 0x2e,
-	0x96, 0xc2, 0x9f, 0x24, 0xab, 0xad, 0x25, 0x17, 0x35, 0x7d, 0xed, 0x29, 0x44, 0xbc, 0x85, 0xa9,
-	0xd9, 0x6c, 0x78, 0xef, 0xe2, 0xba, 0x53, 0xd5, 0xa2, 0xba, 0x9f, 0xea, 0x3f, 0x81, 0x0b, 0x98,
-	0x15, 0x78, 0x31, 0x3b, 0x52, 0xc7, 0x39, 0x1f, 0x2a, 0x9c, 0xc3, 0x89, 0xe7, 0x60, 0xa3, 0x65,
-	0xa7, 0x46, 0x39, 0xfe, 0x65, 0xbc, 0x84, 0x09, 0x4b, 0x47, 0xa2, 0xc6, 0x39, 0xe8, 0x21, 0xd9,
-	0x28, 0xa6, 0x23, 0x35, 0xe9, 0x6d, 0x06, 0xbc, 0x86, 0x9a, 0x44, 0x9e, 0xc3, 0x87, 0xaa, 0xb3,
-	0x2e, 0xd4, 0xdc, 0xc1, 0xd9, 0x8a, 0x5d, 0xe0, 0x2d, 0x69, 0x0a, 0x9e, 0x5d, 0x20, 0x3c, 0x87,
-	0x91, 0x04, 0x5f, 0x3e, 0x9b, 0x8e, 0x0f, 0xaf, 0x30, 0x4b, 0x85, 0xcb, 0x45, 0x5c, 0xc2, 0xe9,
-	0xb0, 0x2a, 0xde, 0xb4, 0x69, 0x82, 0xf6, 0x40, 0xfd, 0xf9, 0x55, 0x1f, 0xfd, 0x7b, 0xa2, 0x39,
-	0x7a, 0xaf, 0xf3, 0x78, 0x8f, 0x3f, 0x01, 0x00, 0x00, 0xff, 0xff, 0x01, 0x1e, 0xdd, 0xaf, 0x4a,
-	0x01, 0x00, 0x00,
+	// 326 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x92, 0x4d, 0x4e, 0x3a, 0x41,
+	0x10, 0xc5, 0xff, 0xf3, 0x87, 0x21, 0x52, 0xc8, 0x87, 0x05, 0xc1, 0xc9, 0xc4, 0x05, 0xe9, 0xc4,
+	0xc4, 0x15, 0x0b, 0xdc, 0xba, 0x83, 0x0d, 0x26, 0xb8, 0xe8, 0x78, 0x81, 0x61, 0xa6, 0x02, 0x44,
+	0x98, 0x1a, 0xbb, 0x9b, 0x43, 0x78, 0x1d, 0xef, 0xe0, 0xbd, 0x4c, 0x7f, 0x80, 0xa0, 0x71, 0xe7,
+	0xae, 0xde, 0xaf, 0xa6, 0x3a, 0xef, 0x55, 0x0d, 0xc0, 0xfc, 0x59, 0xce, 0xc6, 0x95, 0x62, 0xc3,
+	0x58, 0xdf, 0x65, 0x9b, 0x52, 0xbc, 0x47, 0xd0, 0x7b, 0xe4, 0xa5, 0x24, 0xbd, 0xdf, 0x1a, 0x49,
+	0xaf, 0x7b, 0xd2, 0x06, 0x6f, 0xa0, 0x99, 0xe5, 0x39, 0xef, 0x4b, 0x33, 0x2f, 0x92, 0x68, 0x14,
+	0xdd, 0x35, 0xe5, 0x17, 0xc0, 0x11, 0xb4, 0x82, 0x78, 0xca, 0x76, 0x94, 0xfc, 0x77, 0xfd, 0x53,
+	0x84, 0x29, 0x5c, 0x54, 0xac, 0x37, 0x66, 0xc3, 0x65, 0x52, 0x73, 0xed, 0xa3, 0xc6, 0x01, 0xc4,
+	0xac, 0x0a, 0x52, 0x49, 0xdd, 0x35, 0xbc, 0xb0, 0xd4, 0xa8, 0xac, 0xa0, 0x24, 0xf6, 0xd4, 0x09,
+	0x1c, 0x42, 0x83, 0x94, 0x5a, 0xe8, 0x55, 0xd2, 0x70, 0x38, 0x28, 0x71, 0x0b, 0x57, 0x27, 0x9e,
+	0x75, 0xc5, 0xa5, 0x26, 0xec, 0x41, 0x4d, 0xe9, 0x2a, 0xd8, 0xb5, 0xa5, 0x78, 0x8b, 0xa0, 0x2d,
+	0xa9, 0x62, 0xf5, 0x67, 0xc1, 0x10, 0xea, 0x6b, 0xd6, 0x26, 0x84, 0x72, 0xb5, 0x65, 0x39, 0x17,
+	0xe4, 0xf2, 0xc4, 0xd2, 0xd5, 0xd6, 0xcb, 0x4e, 0xaf, 0x42, 0x18, 0x5b, 0x0a, 0x01, 0x9d, 0x83,
+	0x95, 0x5f, 0xfd, 0x76, 0xe0, 0x72, 0xba, 0xa6, 0xfc, 0x25, 0xb8, 0x15, 0x5d, 0x68, 0x07, 0xed,
+	0x47, 0x26, 0x1f, 0x11, 0xb4, 0xec, 0x05, 0xa7, 0x5c, 0x6a, 0xde, 0x12, 0xce, 0xa0, 0xeb, 0x1f,
+	0x3d, 0x6e, 0x03, 0x87, 0x63, 0x7b, 0xd6, 0xf1, 0xf7, 0x93, 0xa6, 0xd7, 0x3f, 0xb8, 0x7f, 0x53,
+	0xfc, 0xc3, 0x87, 0xc3, 0x96, 0x26, 0x8b, 0x4c, 0x1b, 0x52, 0xd8, 0xf7, 0xdf, 0x9e, 0xad, 0x2e,
+	0x1d, 0x9c, 0xc3, 0xe3, 0xf4, 0x04, 0x62, 0x67, 0x12, 0xd1, 0x7f, 0x70, 0x9a, 0x20, 0xed, 0x9f,
+	0xb1, 0xc3, 0xcc, 0xb2, 0xe1, 0xfe, 0xc0, 0xfb, 0xcf, 0x00, 0x00, 0x00, 0xff, 0xff, 0xa6, 0xce,
+	0x3a, 0x95, 0x8f, 0x02, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -180,7 +362,9 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type ITRDConsoleClient interface {
-	BrokerClient(ctx context.Context, in *BrokerClientRequest, opts ...grpc.CallOption) (*ConsoleResponse, error)
+	ReportJobResult(ctx context.Context, in *JobResultRequest, opts ...grpc.CallOption) (*JobResultResponse, error)
+	Report2Master(ctx context.Context, in *ReportRequest, opts ...grpc.CallOption) (*ReportResponse, error)
+	Check(ctx context.Context, in *CheckRequest, opts ...grpc.CallOption) (*CheckResponse, error)
 }
 
 type iTRDConsoleClient struct {
@@ -191,9 +375,27 @@ func NewITRDConsoleClient(cc *grpc.ClientConn) ITRDConsoleClient {
 	return &iTRDConsoleClient{cc}
 }
 
-func (c *iTRDConsoleClient) BrokerClient(ctx context.Context, in *BrokerClientRequest, opts ...grpc.CallOption) (*ConsoleResponse, error) {
-	out := new(ConsoleResponse)
-	err := c.cc.Invoke(ctx, "/main.ITRDConsole/BrokerClient", in, out, opts...)
+func (c *iTRDConsoleClient) ReportJobResult(ctx context.Context, in *JobResultRequest, opts ...grpc.CallOption) (*JobResultResponse, error) {
+	out := new(JobResultResponse)
+	err := c.cc.Invoke(ctx, "/main.ITRDConsole/ReportJobResult", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iTRDConsoleClient) Report2Master(ctx context.Context, in *ReportRequest, opts ...grpc.CallOption) (*ReportResponse, error) {
+	out := new(ReportResponse)
+	err := c.cc.Invoke(ctx, "/main.ITRDConsole/Report2Master", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *iTRDConsoleClient) Check(ctx context.Context, in *CheckRequest, opts ...grpc.CallOption) (*CheckResponse, error) {
+	out := new(CheckResponse)
+	err := c.cc.Invoke(ctx, "/main.ITRDConsole/Check", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -202,35 +404,79 @@ func (c *iTRDConsoleClient) BrokerClient(ctx context.Context, in *BrokerClientRe
 
 // ITRDConsoleServer is the server API for ITRDConsole service.
 type ITRDConsoleServer interface {
-	BrokerClient(context.Context, *BrokerClientRequest) (*ConsoleResponse, error)
+	ReportJobResult(context.Context, *JobResultRequest) (*JobResultResponse, error)
+	Report2Master(context.Context, *ReportRequest) (*ReportResponse, error)
+	Check(context.Context, *CheckRequest) (*CheckResponse, error)
 }
 
 // UnimplementedITRDConsoleServer can be embedded to have forward compatible implementations.
 type UnimplementedITRDConsoleServer struct {
 }
 
-func (*UnimplementedITRDConsoleServer) BrokerClient(ctx context.Context, req *BrokerClientRequest) (*ConsoleResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method BrokerClient not implemented")
+func (*UnimplementedITRDConsoleServer) ReportJobResult(ctx context.Context, req *JobResultRequest) (*JobResultResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ReportJobResult not implemented")
+}
+func (*UnimplementedITRDConsoleServer) Report2Master(ctx context.Context, req *ReportRequest) (*ReportResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Report2Master not implemented")
+}
+func (*UnimplementedITRDConsoleServer) Check(ctx context.Context, req *CheckRequest) (*CheckResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Check not implemented")
 }
 
 func RegisterITRDConsoleServer(s *grpc.Server, srv ITRDConsoleServer) {
 	s.RegisterService(&_ITRDConsole_serviceDesc, srv)
 }
 
-func _ITRDConsole_BrokerClient_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(BrokerClientRequest)
+func _ITRDConsole_ReportJobResult_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JobResultRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ITRDConsoleServer).BrokerClient(ctx, in)
+		return srv.(ITRDConsoleServer).ReportJobResult(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/main.ITRDConsole/BrokerClient",
+		FullMethod: "/main.ITRDConsole/ReportJobResult",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ITRDConsoleServer).BrokerClient(ctx, req.(*BrokerClientRequest))
+		return srv.(ITRDConsoleServer).ReportJobResult(ctx, req.(*JobResultRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ITRDConsole_Report2Master_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReportRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ITRDConsoleServer).Report2Master(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/main.ITRDConsole/Report2Master",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ITRDConsoleServer).Report2Master(ctx, req.(*ReportRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ITRDConsole_Check_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ITRDConsoleServer).Check(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/main.ITRDConsole/Check",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ITRDConsoleServer).Check(ctx, req.(*CheckRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -240,8 +486,16 @@ var _ITRDConsole_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*ITRDConsoleServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "BrokerClient",
-			Handler:    _ITRDConsole_BrokerClient_Handler,
+			MethodName: "ReportJobResult",
+			Handler:    _ITRDConsole_ReportJobResult_Handler,
+		},
+		{
+			MethodName: "Report2Master",
+			Handler:    _ITRDConsole_Report2Master_Handler,
+		},
+		{
+			MethodName: "Check",
+			Handler:    _ITRDConsole_Check_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
