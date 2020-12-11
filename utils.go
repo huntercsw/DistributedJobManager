@@ -39,7 +39,7 @@ func MasterStatusCheckByHttpRequest () error {
 	if IsVirtualMachine {
 		sysTypeCode = SystemTypeCodeVirtualMachine
 	}
-	checkUrl := fmt.Sprintf("http://%s:8090/api/webServerStatus/?sysTypeCode=%d&addr=%s", Conf.MasterInfo.Ip, sysTypeCode, NodeIpAddr+":"+JobServerPort)
+	checkUrl := fmt.Sprintf("http://%s:8090/api/webServerStatus/?sysTypeCode=%d&addr=%s", Conf.MasterInfo.Ip, sysTypeCode, NodeIpAddr)
 	requestUrl, err := url.Parse(checkUrl)
 	if err != nil {
 		Logger.Error(fmt.Sprintf("Check Master by Http error, URL %s error: %v", checkUrl, err))

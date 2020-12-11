@@ -16,6 +16,7 @@ const (
 	JobServerMetaDataPreKey              = "/ITRD/JobServer/MetaData/"
 	JobServerStatusPreKey                = "/ITRD/JobServer/Status/"
 	JobIsRunningOnPreKey                 = "/ITRD/JobIsRunningOn/" // distribute lock, /ITRD/JobIsRunningOn/XXXX: XXX.XXX.XXX.XXX
+	MasterComeOnlineKey                   = "/ITRD/Master/Online"
 	FileListPreKey                       = "/ITRD/FileList"
 	PyFileNameListKey                    = "/ITRD/FileList/py"
 	PngFileNameListKey                   = "/ITRD/FileList/png"

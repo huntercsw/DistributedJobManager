@@ -128,7 +128,7 @@ func WebServerStatus(c *gin.Context) {
 	} else {
 		code, _ := strconv.Atoi(nodeTypeCode)
 		if code == SystemTypeCodePhysicalMachine {
-			PhysicalMachineMap[nodeAddr] = struct{}{}
+			PhysicalMachineMap[nodeAddr + ":" + JobServerPort] = struct{}{}
 		}
 		c.JSON(http.StatusOK, gin.H{})
 	}

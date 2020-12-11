@@ -54,4 +54,6 @@ func reConfig(v []byte) {
 		Logger.Error(fmt.Sprintf("config reInitialize error: %v \n", err))
 		os.Exit(1)
 	}
+
+	NodeConfigurationVersion = newConfigVersion
 }

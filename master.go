@@ -16,14 +16,14 @@ import (
 )
 
 var (
-	ClientMap             sync.Map		// key: 192.168.1.191:18199
+	ClientMap             sync.Map // key: 192.168.1.191:18199
 	ClientStatusMap       map[string]string
 	ClientConnMap         = make(map[string]*grpc.ClientConn)
 	MasterRouterChannel   = make(chan string, 255)
 	PyFileMap             = new(FileMap)
 	PngFileMap            = new(FileMap)
 	VMBlackListAccountMap map[string]struct{}
-	PhysicalMachineMap    = make(map[string]struct{})
+	PhysicalMachineMap    = make(map[string]struct{})		// key: 192.168.1.191:18199
 )
 
 type FileMap map[string]string // [fileName]: fileSha1
@@ -201,20 +201,34 @@ func addNodeHandler(k, v []byte) {
 }
 
 func removeNodeHandler(k string) {
-	ClientMap.Delete(k)
-	if _, exist := PhysicalMachineMap[k]; exist {
-		delete(PhysicalMachineMap, k)
+	key, _ := newKey(k)
+	ClientMap.Delete(key)
+	if _, exist := PhysicalMachineMap[key]; exist {
+		delete(PhysicalMachineMap, key)
 	}
-	if conn, exist := ClientConnMap[k]; exist {
-		delete(ClientConnMap, k)
+	if conn, exist := ClientConnMap[key]; exist {
+		delete(ClientConnMap, key)
 		_ = conn.Close()
 	}
 
-	if _, err := Cli3.Delete(context.TODO(), JobServerStatusPreKey+strings.Split(k, "/")[4]); err != nil {
-		Logger.Error(fmt.Sprintf("delete status %s error: %v", JobServerStatusPreKey+strings.Split(k, "/")[4], err))
+	// delete client from MasterRouterChannel
+	for i := 0; i < len(MasterRouterChannel); i++ {
+		select {
+		case client := <-MasterRouterChannel:
+			if client == key {
+				break
+			} else {
+				MasterRouterChannel <- client
+			}
+		default:
+		}
 	}
 
-	JobUnlockWhenNodeDead(strings.Split(k, "/")[4])
+	if _, err := Cli3.Delete(context.TODO(), JobServerStatusPreKey+key); err != nil {
+		Logger.Error(fmt.Sprintf("delete status %s error: %v", JobServerStatusPreKey+key, err))
+	}
+
+	JobUnlockWhenNodeDead(key)
 
 	//log.Println("node delete", k)
 	//printClientMap()
@@ -232,6 +246,10 @@ func addNodeStatusHandler(k, v []byte) {
 
 	//log.Println("status add", string(k))
 	//printClientStatusMap()
+
+	//fmt.Println("node status add******************************")
+	//printClientStatusMap()
+	//printClientMap()
 }
 
 func removeNodeStatusHandler(k []byte) {
@@ -239,6 +257,10 @@ func removeNodeStatusHandler(k []byte) {
 	delete(ClientStatusMap, _k)
 	//log.Println("status delete", string(k))
 	//printClientStatusMap()
+
+	//fmt.Println("node status remove ********************************")
+	//printClientStatusMap()
+	//printClientMap()
 }
 
 func modifyNodeStatusHandler(k, v []byte) {
@@ -253,6 +275,10 @@ func modifyNodeStatusHandler(k, v []byte) {
 
 	//log.Println("status modify", string(k), string(v))
 	//printClientStatusMap()
+
+	//fmt.Println("node status modify **************************")
+	//printClientStatusMap()
+	//printClientMap()
 }
 
 func printClientStatusMap() {
@@ -279,7 +305,7 @@ func RunMasterRouter(ctx context.Context) {
 	for {
 		var accountName string
 		select {
-		case vmDisableJob := <- VMDisableJobChannel:
+		case vmDisableJob := <-VMDisableJobChannel:
 			accountName = vmDisableJob
 			Logger.Debug(fmt.Sprintf("get job from VMDisableJobChannel -> %s", accountName))
 		case job := <-JobChan:
@@ -294,7 +320,7 @@ func RunMasterRouter(ctx context.Context) {
 		var client string
 		for {
 			client = <-MasterRouterChannel
-			if isInClientMap(client) && isInClientStatusMap(client) {
+			if isInClientMap(client) && isInClientStatusMapAndFree(client) {
 				findFreeClient = true
 				break
 			}
@@ -303,12 +329,13 @@ func RunMasterRouter(ctx context.Context) {
 		if findFreeClient {
 			Logger.Debug("length: MasterRouterChannel: ", len(MasterRouterChannel))
 			var err error
+			vmWaitForJobChannel := false
 			if _, exist := PhysicalMachineMap[client]; exist {
 				if _, exist := VMBlackListAccountMap[accountName]; exist {
 					err = assignJob(client, accountName)
 				} else {
 					if len(VMDisableJobChannel) > 0 {
-						_job := <- VMDisableJobChannel
+						_job := <-VMDisableJobChannel
 						JobChan <- accountName
 						Logger.Debug(fmt.Sprintf("%s is physical machine, %s is not VmDisable job, get job %s from VmDisableChannel", client, accountName, _job))
 						err = assignJob(client, _job)
@@ -319,23 +346,45 @@ func RunMasterRouter(ctx context.Context) {
 			} else {
 				if _, exist := VMBlackListAccountMap[accountName]; exist {
 					VMDisableJobChannel <- accountName
-					if len(JobChan) > 0 {
-						_job := <- JobChan
-						Logger.Debug(fmt.Sprintf("%s is virtual machine, %s is VmDisable job, get job %s from JobChannel", client, accountName, _job))
-						err = assignJob(client, _job)
-					} else {
-						MasterRouterChannel <- client
-						continue
-					}
+					Logger.Debug(fmt.Sprintf("%s is virtual machine, %s is VmDisable job, waiting for another job", client, accountName))
+					vmWaitForJobChannel = true
+					go func() {
+						select {
+						case vmAvaliableJob := <-JobChan:
+							err = assignJob(client, vmAvaliableJob)
+							if err != nil {
+								Logger.Error(fmt.Sprintf("assign job %s to %s error: %v", vmAvaliableJob, client, err))
+							} else {
+								Logger.Debug(fmt.Sprintf("Virtual Macheine %s get job[%s]", client, vmAvaliableJob))
+							}
+						case <-time.After(time.Second * 600):
+							MasterRouterChannel <- client
+						}
+					}()
+					//if len(JobChan) > 0 {
+					//	_job := <-JobChan
+					//	//Logger.Debug(fmt.Sprintf("%s is virtual machine, %s is VmDisable job, get job %s from JobChannel", client, accountName, _job))
+					//	err = assignJob(client, _job)
+					//} else {
+					//	go func() {
+					//		if len(JobChan) == 0 && len(M) {
+					//			time.Sleep()
+					//		}
+					//		MasterRouterChannel <- client
+					//	}()
+					//	continue
+					//}
 				} else {
 					err = assignJob(client, accountName)
 				}
 			}
-			//err := assignJob(client, accountName)
+
 			if err != nil {
 				Logger.Error(fmt.Sprintf("assign job %s to %s error: %v", accountName, client, err))
 			} else {
-				Logger.Debug(fmt.Sprintf("get node[%s] from MasterRouterChannel to do job[%s]", client, accountName))
+				if !vmWaitForJobChannel {
+					Logger.Debug(fmt.Sprintf("get node[%s] from MasterRouterChannel to do job[%s]", client, accountName))
+				}
 			}
 		}
 	}
@@ -349,8 +398,8 @@ func isInClientMap(k string) bool {
 	}
 }
 
-func isInClientStatusMap(k string) bool {
-	if _, exist := ClientStatusMap[k]; exist {
+func isInClientStatusMapAndFree(k string) bool {
+	if statusCode, exist := ClientStatusMap[k]; exist && statusCode == JobServerStatusFree {
 		return true
 	} else {
 		return false
@@ -385,7 +434,6 @@ func assignJob(node, accountName string) error {
 			Logger.Debug(fmt.Sprintf("%s is virtual machine, can not do job %s", node, accountName))
 			RouteJob2Channel(accountName)
 			MasterRouterChannel <- node
-			// TODO: job will sand to this node always
 		case ErrorCodeJobRunningOnOtherNode:
 			Logger.Debug(fmt.Sprintf("run job on %s failed: %s", node, rsp.ErrMsg))
 			MasterRouterChannel <- node
@@ -431,6 +479,7 @@ func JobUnlockWhenNodeDead(node string) {
 			if _, err := Cli3.Delete(context.TODO(), string(kv.Key)); err != nil {
 				Logger.Error(fmt.Sprintf("unlock job for node %s, delete key %s error: %v", nodeIp, string(kv.Key), err))
 			}
+			RouteJob2Channel(strings.Split(string(kv.Key), "/")[3])
 		}
 	}
 }

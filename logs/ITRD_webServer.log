@@ -9,3 +9,5 @@
 2020-12-01T20:39:26.939+0800	INFO	ITRD_distributed/master.go:285	Master Router was canceled
 2020-12-01T20:40:28.526+0800	ERROR	ITRD_distributed/mainWebServer.go:88	interrupt
 2020-12-01T20:40:28.527+0800	INFO	ITRD_distributed/master.go:285	Master Router was canceled
+2020-12-10T20:29:07.645+0800	ERROR	ITRD_distributed/master.go:482	open dir[/home/xy/ITRD/pys] error: open /home/xy/ITRD/pys: The system cannot find the path specified.
+2020-12-10T20:29:07.645+0800	ERROR	ITRD_distributed/mainWebServer.go:32	py file map map init error: open /home/xy/ITRD/pys: The system cannot find the path specified.

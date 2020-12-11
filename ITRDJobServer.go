@@ -32,7 +32,7 @@ var (
 	NodeIpAddr                string
 	CurrentAccountName        string
 	CurrentBrokerClientCancel context.CancelFunc
-	NodeConfigurationVersion = 0
+	NodeConfigurationVersion  = 0
 )
 
 type ITRDJobServer struct{}
@@ -50,16 +50,7 @@ type JobResult struct {
 	Error       error
 }
 
-func ReporterInit() error {
-	ip, err := externalIP()
-	if err != nil {
-		Logger.Error(fmt.Sprintf("get host ip error: %v", err))
-		log.Println(fmt.Sprintf("get host ip error: %v", err))
-		return err
-	} else {
-		NodeIpAddr = ip.String()
-	}
-
+func ReporterInit() (err error) {
 	Reporter, err = grpc.Dial(Conf.MasterInfo.Ip+":"+Conf.MasterInfo.Port, grpc.WithInsecure())
 	if err != nil {
 		Logger.Error(fmt.Sprintf("dial to master error: %v", err))
@@ -71,8 +62,9 @@ func ReporterInit() error {
 		Logger.Error(fmt.Sprintf("%s check to master error: %v", NodeIpAddr, err))
 		log.Println(fmt.Sprintf("%s check to master error: %v", NodeIpAddr, err))
 		return err
+	} else {
+		Logger.Debug("check rpc to master OK!")
 	}
-
 	return nil
 }
 
@@ -151,7 +143,7 @@ func (js *JobService) StopJob(ctx context.Context, req *JobInfo) (*JobStatus, er
 
 func (js *JobService) PullConfig(ctx context.Context, req *PullConfRequest) (*PullConfResponse, error) {
 	UpdateConfig = true
-	defer func() {UpdateConfig = false}()
+	defer func() { UpdateConfig = false }()
 
 	if err := PullFile(Conf.MasterInfo.Ip, MasterHostUser, MasterBaseDir+ConfigFileName, "./"+ConfigFileName); err != nil {
 		Logger.Error(fmt.Sprintf("pull configuration[%s] from master[%s] error: %v", MasterBaseDir+ConfigFileName, Conf.MasterInfo.Ip, err))
@@ -323,7 +315,7 @@ func (js *ITRDJobServer) registerMonitor(ctx context.Context) {
 					RestartRegisterChannel <- struct{}{}
 				} else {
 					statusCode := string(rsp.Kvs[0].Value)
-					if statusCode != JobServerStatusFree && statusCode != JobServerStatusRunning && statusCode != JobServerStatusSyncPyFiles{
+					if statusCode != JobServerStatusFree && statusCode != JobServerStatusRunning && statusCode != JobServerStatusSyncPyFiles {
 						Logger.Debug(fmt.Sprintf("RegisterMoniter: nodd status value of %s error, value is %s", MyJobServerStatusKey, statusCode))
 						RestartRegisterChannel <- struct{}{}
 					}
@@ -344,10 +336,10 @@ func externalIP() (net.IP, error) {
 	}
 	for _, iface := range ifaces {
 		if iface.Flags&net.FlagUp == 0 {
-			continue // interface down
+			continue 	// interface down
 		}
 		if iface.Flags&net.FlagLoopback != 0 {
-			continue // loopback interface
+			continue 	// loopback interface
 		}
 		addrs, err := iface.Addrs()
 		if err != nil {
@@ -460,7 +452,7 @@ func do(accountName string) {
 		case ErrorCodeDoJobOK:
 			// impossible
 		case ErrorCodeDoJobError:
-			if CurrentAccountName == "" {		// job canceled by master
+			if CurrentAccountName == "" { // job canceled by master
 				report.Code = ErrorCodeJobCancelByMaster
 			} else {
 				report.Code, report.Msg = ErrorCodeDoJobError, res.Error.Error()
@@ -548,10 +540,8 @@ func closeBrokerClient(accountName string) error {
 		return nil
 	}
 
+	CurrentAccountName = "" // do this before do cancel()
 	CurrentBrokerClientCancel()
-	defer func() {
-		CurrentAccountName = ""
-	}()
 
 	brokerClient := Conf.BrokerClientName(accountName)
 	if brokerClient == "" {
@@ -687,4 +677,16 @@ func BeAbleToDoJob(accountName string) bool {
 	}
 
 	return true
+}
+
+func SendCheckAlways(ctx context.Context) {
+	ticker := time.NewTicker(time.Second * 180)
+	for {
+		select {
+		case <-ticker.C:
+			_ = MasterStatusCheckByHttpRequest()
+		case <-ctx.Done():
+			return
+		}
+	}
 }

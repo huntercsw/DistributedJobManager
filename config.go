@@ -87,7 +87,7 @@ func (conf *ITRDConf) newConf() (err error) {
 
 		for _, b := range conf.VMBlackList.Brokers {
 			if conf.Brokers[i].Name == b {
-				VMBlackListAccountMap[b] = struct{}{}
+				VMBlackListAccountMap[conf.Brokers[i].AccountName] = struct{}{}
 				break
 			}
 		}

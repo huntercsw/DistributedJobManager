@@ -25,7 +25,7 @@ func NodeSysTypeInit() error {
 			if len(kv) != 2 {
 				continue
 			} else {
-				if kv[0] == "系统制造商" {
+				if kv[0] == "系统制造商" || kv[0] == "System Manufacturer"{
 					manufacturer = kv[1]
 				}
 			}

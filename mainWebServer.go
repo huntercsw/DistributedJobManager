@@ -42,6 +42,7 @@ func init() {
 }
 
 func main() {
+	fmt.Println(VMBlackListAccountMap)
 	defer Cli3.Close()
 	defer func() {
 		if err := recover(); err != nil {
@@ -80,13 +81,6 @@ func main() {
 	}()
 
 	go RunConsoleServer()
-
-	//if err := Cli3Init(); err != nil {
-	//	Logger.Error(fmt.Sprintf("cli3 init error: %v", err))
-	//	log.Println(fmt.Sprintf("cli3 init error: %v", err))
-	//	return
-	//}
-	//defer Cli3.Close()
 
 	err := MasterInit()
 
