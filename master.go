@@ -16,17 +16,17 @@ import (
 )
 
 var (
-	ClientMap             sync.Map // key: 192.168.1.191:18199
+	ClientMap             sync.Map 		// key eg: 192.168.1.191:18199; value: metadata of node
 	ClientStatusMap       map[string]string
 	ClientConnMap         = make(map[string]*grpc.ClientConn)
 	MasterRouterChannel   = make(chan string, 255)
 	PyFileMap             = new(FileMap)
 	PngFileMap            = new(FileMap)
 	VMBlackListAccountMap map[string]struct{}
-	PhysicalMachineMap    = make(map[string]struct{})		// key: 192.168.1.191:18199
+	PhysicalMachineMap    = make(map[string]struct{})		// key eg: 192.168.1.191:18199
 )
 
-type FileMap map[string]string // [fileName]: fileSha1
+type FileMap map[string]string 		// eg: [fileName]: fileSha1
 
 func newKey(s string) (string, error) {
 	_s := strings.Split(s, "/")
@@ -361,19 +361,6 @@ func RunMasterRouter(ctx context.Context) {
 							MasterRouterChannel <- client
 						}
 					}()
-					//if len(JobChan) > 0 {
-					//	_job := <-JobChan
-					//	//Logger.Debug(fmt.Sprintf("%s is virtual machine, %s is VmDisable job, get job %s from JobChannel", client, accountName, _job))
-					//	err = assignJob(client, _job)
-					//} else {
-					//	go func() {
-					//		if len(JobChan) == 0 && len(M) {
-					//			time.Sleep()
-					//		}
-					//		MasterRouterChannel <- client
-					//	}()
-					//	continue
-					//}
 				} else {
 					err = assignJob(client, accountName)
 				}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -128,7 +129,7 @@ func WebServerStatus(c *gin.Context) {
 	} else {
 		code, _ := strconv.Atoi(nodeTypeCode)
 		if code == SystemTypeCodePhysicalMachine {
-			PhysicalMachineMap[nodeAddr + ":" + JobServerPort] = struct{}{}
+			PhysicalMachineMap[nodeAddr+":"+JobServerPort] = struct{}{}
 		}
 		c.JSON(http.StatusOK, gin.H{})
 	}
@@ -298,4 +299,75 @@ func updatePngFiles() error {
 	} else {
 		return nil
 	}
+}
+
+func NodeList(c *gin.Context) {
+	type NodeInfo struct {
+		Ip         string
+		StatusCode string
+		IsVM       bool
+	}
+
+	nl := make([]NodeInfo, 0)
+
+	for k, clientStatusCode := range ClientStatusMap {
+		vm := true
+		if _, exist := PhysicalMachineMap[k]; exist {
+			vm = false
+		}
+		n := NodeInfo{Ip: strings.Split(k, ":")[0], StatusCode: clientStatusCode, IsVM: vm}
+		nl = append(nl, n)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ErrorCode": 0, "Data": nl})
+}
+
+func MasterRouterChannelLength(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"ErrorCode": 0, "Data": len(MasterRouterChannel)})
+}
+
+func ChangeClientStatus2OffLine(c *gin.Context) {
+	nodeAddr := c.Query("addr")
+	if nodeAddr == "" {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusBadRequest, "Data": "node addr is required"})
+		return
+	}
+	conn, exist := ClientConnMap[nodeAddr + ":" + JobServerPort]
+	if !exist {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusBadRequest, "Data": fmt.Sprintf("%s dose not in ClientConnMap", nodeAddr)})
+		return
+	}
+
+	client := NewJobManagerClient(conn)
+	if stopRes, err := client.StopJob(context.TODO(), &JobInfo{}); err != nil {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusInternalServerError, "Data": fmt.Sprintf("send stop signal to %s error: %v", nodeAddr, err)})
+		return
+	} else {
+		if stopRes.ErrMsg != "" {
+			c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusInternalServerError, "Data": fmt.Sprintf("%s stop job error: %v", nodeAddr, stopRes.ErrMsg)})
+			return
+		}
+	}
+
+	if err := UpdateJobServerStatus(JobServerStatusPreKey + nodeAddr + ":" + JobServerPort, JobServerStatusOffLine); err != nil {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusInternalServerError, "Data": fmt.Sprintf("update %s to OffLine error: %v", nodeAddr, err)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ErrorCode": 0, "Data": ""})
+}
+
+func ChangeClientStatus2Free(c *gin.Context) {
+	nodeAddr := c.Query("addr")
+	if nodeAddr == "" {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusBadRequest, "Data": "node addr is required"})
+		return
+	}
+
+	if err := UpdateJobServerStatus(JobServerStatusPreKey + nodeAddr + ":" + JobServerPort, JobServerStatusFree); err != nil {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusInternalServerError, "Data": fmt.Sprintf("update %s to Free error: %v", nodeAddr, err)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"ErrorCode": 0, "Data": ""})
 }

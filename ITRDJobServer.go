@@ -301,6 +301,12 @@ func (js *ITRDJobServer) register(ctx context.Context) {
 }
 
 func (js *ITRDJobServer) registerMonitor(ctx context.Context) {
+	statusWhiteListMap := map[string]struct{}{
+		JobServerStatusFree: {},
+		JobServerStatusRunning: {},
+		JobServerStatusSyncPyFiles: {},
+		JobServerStatusOffLine: {},
+	}
 	for {
 		time.Sleep(time.Second * 3)
 		select {
@@ -315,7 +321,7 @@ func (js *ITRDJobServer) registerMonitor(ctx context.Context) {
 					RestartRegisterChannel <- struct{}{}
 				} else {
 					statusCode := string(rsp.Kvs[0].Value)
-					if statusCode != JobServerStatusFree && statusCode != JobServerStatusRunning && statusCode != JobServerStatusSyncPyFiles {
+					if _, exist := statusWhiteListMap[statusCode]; !exist {
 						Logger.Debug(fmt.Sprintf("RegisterMoniter: nodd status value of %s error, value is %s", MyJobServerStatusKey, statusCode))
 						RestartRegisterChannel <- struct{}{}
 					}
