@@ -338,6 +338,11 @@ func ChangeClientStatus2OffLine(c *gin.Context) {
 		return
 	}
 
+	if err := UpdateJobServerStatus(JobServerStatusPreKey + nodeAddr + ":" + JobServerPort, JobServerStatusOffLine); err != nil {
+		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusInternalServerError, "Data": fmt.Sprintf("update %s to OffLine error: %v", nodeAddr, err)})
+		return
+	}
+
 	client := NewJobManagerClient(conn)
 	if stopRes, err := client.StopJob(context.TODO(), &JobInfo{}); err != nil {
 		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusInternalServerError, "Data": fmt.Sprintf("send stop signal to %s error: %v", nodeAddr, err)})
@@ -349,11 +354,7 @@ func ChangeClientStatus2OffLine(c *gin.Context) {
 		}
 	}
 
-	if err := UpdateJobServerStatus(JobServerStatusPreKey + nodeAddr + ":" + JobServerPort, JobServerStatusOffLine); err != nil {
-		c.JSON(http.StatusOK, gin.H{"ErrorCode": http.StatusInternalServerError, "Data": fmt.Sprintf("update %s to OffLine error: %v", nodeAddr, err)})
-		return
-	}
-
+	time.Sleep(time.Second)
 	c.JSON(http.StatusOK, gin.H{"ErrorCode": 0, "Data": ""})
 }
 

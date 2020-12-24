@@ -127,28 +127,4 @@ func RunWsServer(c *gin.Context) {
 	go client.readPump()
 }
 
-//func UpgradeHttpToWs(c *gin.Context) {
-//	var remoteIp string
-//	conn, err := (&websocket.Upgrader{
-//		// disable cross-site check
-//		CheckOrigin: func(r *http.Request) bool {
-//			remoteIp = r.Header["X-Real-Ip"][0]
-//			return true
-//		},
-//	}).Upgrade(c.Writer, c.Request, nil)
-//
-//	if err != nil {
-//		log.Println("Upgrade http to webSocket error:", err)
-//		c.JSON(http.StatusOK, gin.H{
-//			"ErrorCode": http.StatusInternalServerError,
-//			"Data":      fmt.Sprintf("Upgrade http to webSocket error: %f", err),
-//		})
-//		return
-//	}
-//
-//	client := NewClient(remoteIp, conn)
-//	CM.add(client)
-//
-//	go client.read()
-//	go client.write()
-//}
+
